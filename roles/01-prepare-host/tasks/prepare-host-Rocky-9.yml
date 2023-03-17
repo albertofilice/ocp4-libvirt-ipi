@@ -95,6 +95,7 @@
     - 80/tcp
     - 443/tcp
     - 6443/tcp
+    - 9090/tcp  
   notify: 'reload firewalld'
 
 - name: firewalld reload

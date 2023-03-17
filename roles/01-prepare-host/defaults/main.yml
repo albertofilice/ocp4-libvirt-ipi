@@ -1,2 +1,3 @@
 ---
 # defaults file for 01-prepare-host.yml
+ssh_public_key_location: ~/.ssh/id_rsa

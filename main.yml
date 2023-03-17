@@ -7,8 +7,15 @@
     kvm_nestedvirtualization: true
     kvm_pool_location: "/var/lib/libvirt/openshift-images"
     nfs_export_path: "var/lib/libvirt/openshift-nfs"    
+    cluster_name: ocp4
+    basedomain: filice.eu  
+    nfs_storage: true
     ocp_install_file_path: "install-config.yaml"
-    ocp_release: "4.11.0"
+    ocp_install_path: "{{ kvm_workdir }}/ocp"
+    ocp_mirror: "https://mirror.openshift.com/pub/openshift-v4/clients/ocp"
+    ocp_openshift_installer_repo: "https://github.com/openshift/installer"  
+    kvm_libvirt_network_gw: "192.168.122.1"  
+    ocp_release: "4.12.6"
     ocp_master_memory: 16
     ocp_master_cpu: 4
     ocp_master_disk: 150
@@ -17,7 +24,7 @@
     ocp_worker_disk: 150
 
   roles:
-    - {role: '01-prepare-host'}
-    - {role: '02-loadbalancer'}
+    #- {role: '01-prepare-host'}
+    #- {role: '02-loadbalancer'}
     - {role: '03-build-openshift-installer'}
-    - {role: '04-cluster-install'}
+      #- {role: '04-cluster-install'}

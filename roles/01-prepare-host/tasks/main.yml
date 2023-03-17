@@ -16,9 +16,10 @@
 - name: Start libvirtd-tcp
   become: true
   systemd:
-    name: libvirtd-tcp
+    name: libvirtd-tcp.socket
     state: started
     enabled: yes
+  ignore_errors: true
 
 - name: Verify KVM module is loaded
   ansible.builtin.shell: "set -o pipefail && lsmod | grep -i kvm"
@@ -75,7 +76,7 @@
           listen-address=127.0.0.1
           bind-interfaces
           server=8.8.8.8
-          address=/{{ cluster_name }}.{{ basedomain }}/{{ 192.168.126.1  }}
+          address=/{{ cluster_name }}.{{ basedomain }}/192.168.126.1
 
 - name: Reload network
   become: true
@@ -220,21 +221,20 @@
         state: restarted
         enabled: True
 
+# - name: Reboot in case of remote execution
+#   block:
+#     - name: Reboot server
+#       ansible.builtin.shell: sync && sleep 2 && shutdown -r now
+#       async: 1
+#       poll: 0
+#       changed_when: true
+#       failed_when: false
 
-- name: Reboot in case of remote execution
-  block:
-    - name: Reboot server
-      ansible.builtin.shell: sync && sleep 2 && shutdown -r now
-      async: 1
-      poll: 0
-      changed_when: true
-      failed_when: false
-
-    - name: Wait for the reboot to complete
-      ansible.builtin.wait_for_connection:
-        connect_timeout: 10
-        sleep: 5
-        delay: 5
-        timeout: 300
-  when:
-    - ansible_host != "localhost"
+#     - name: Wait for the reboot to complete
+#       ansible.builtin.wait_for_connection:
+#         connect_timeout: 10
+#         sleep: 5
+#         delay: 5
+#         timeout: 300
+#   when:
+#     - ansible_host != "localhost"
