@@ -3,7 +3,7 @@
   ansible.builtin.yum_repository:
     name: devel
     enabled: yes
-    state: update
+    state: present
 
 - name: Installing KVM Packages
   ansible.builtin.package:
