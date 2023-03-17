@@ -2,8 +2,9 @@
 - name: Enable Repo Devel for Libvirt-devel
   ansible.builtin.yum_repository:
     name: devel
+    description: Devel YUM repo
+    mirrorlist: https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=devel-$releasever$rltype      
     enabled: yes
-    state: present
 
 - name: Installing KVM Packages
   ansible.builtin.package:

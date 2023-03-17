@@ -17,7 +17,7 @@
     ocp_worker_disk: 150
 
   roles:
-    - {role: '01-prepare-host.yml'}
+    - {role: '01-prepare-host'}
     - {role: '02-loadbalancer'}
     - {role: '03-build-openshift-installer'}
     - {role: '04-cluster-install'}
