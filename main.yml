@@ -15,10 +15,9 @@
     ocp_worker_memory: 20
     ocp_worker_cpu: 4
     ocp_worker_disk: 150
-    
+
   roles:
     - {role: '01-prepare-host.yml'}
     - {role: '02-loadbalancer'}
     - {role: '03-build-openshift-installer'}
     - {role: '04-cluster-install'}
-    - {role: 'ocp_write_output'}
