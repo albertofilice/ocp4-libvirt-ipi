@@ -10,21 +10,22 @@
     cluster_name: ocp4
     basedomain: filice.eu  
     nfs_storage: true
-    ocp_install_file_path: "install-config.yaml"
+    ocp_install_file_path: "install-config.yml"
     ocp_install_path: "{{ kvm_workdir }}/ocp"
     ocp_mirror: "https://mirror.openshift.com/pub/openshift-v4/clients/ocp"
     ocp_openshift_installer_repo: "https://github.com/openshift/installer"  
+    ocp_install_install_release_image_registry: "quay.io/openshift-release-dev/ocp-release"
     kvm_libvirt_network_gw: "192.168.122.1"  
     ocp_release: "4.12.6"
-    ocp_master_memory: 16
-    ocp_master_cpu: 4
+    ocp_master_memory: 24
+    ocp_master_cpu: 8
     ocp_master_disk: 150
-    ocp_worker_memory: 20
-    ocp_worker_cpu: 4
+    ocp_worker_memory: 32
+    ocp_worker_cpu: 8
     ocp_worker_disk: 150
 
   roles:
     #- {role: '01-prepare-host'}
     #- {role: '02-loadbalancer'}
-    - {role: '03-build-openshift-installer'}
-      #- {role: '04-cluster-install'}
+    #- {role: '03-build-openshift-installer'}
+    - {role: '04-cluster-install'}

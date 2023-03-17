@@ -121,20 +121,16 @@
       copy:
         src: "{{ ocp_install_file_path }}"
         dest: "{{ ocp_install_path }}/install-config.yaml"
-        owner: "{{ ansible_user}}"
 
     - name: Copy install-config.yaml to install dir
       copy:
         src: "{{ ocp_install_file_path }}"
         dest: "{{ ocp_install_path }}/install/install-config.yaml"
-        owner: "{{ ansible_user}}"
 
 ############
 # Run installation
 
 - name: Install OpenShift
-  when: ocp_install == "true"
-  tags: install
   become: true
   environment:
     GOPATH: "{{ kvm_workdir }}/go"
@@ -157,7 +153,6 @@
       copy:
         src: "extra_manifests/"
         dest: "{{ ocp_install_path }}/install/manifests/"
-        owner: "{{ ansible_user}}"
       when: extra_manifests.stat.isdir is defined and extra_manifests.stat.isdir
 
     - name: Configure Custom resources for Masters and Workers
@@ -175,19 +170,3 @@
            -e 's/.*domainVcpu.*/          domainVcpu: {{ ocp_worker_cpu }}/g' \
         {{ ocp_install_path }}/install/openshift/99_openshift-cluster-api_worker-machineset-0.yaml
 
-    - name: Display message about OpenShift install
-      debug:
-        msg: "The next task - OpenShift Install - It might take some time to produce any output, please be patient. Thank you."
-
-    - name: OpenShift install
-      shell: |
-        ############# BUG https://bugzilla.redhat.com/show_bug.cgi?id=1805034
-        if [ {{ controlPlane.replicas }} -eq 1 ]
-        then
-          {{ ocp_install_path }}/single-master-patch.sh &
-        fi
-        #############
-        export OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE={{ ocp_install_install_release_image_registry }}:{{ ocp_release }}-x86_64
-        export GOPATH={{ kvm_workdir }}/go
-        export GOCACHE={{ kvm_workdir }}/go-build
-        {{ ocp_install_path }}/artifacts/openshift-installer-{{ ocp_release }}/openshift-install create cluster --dir {{ ocp_install_path }}/install/        

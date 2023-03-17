@@ -19,7 +19,6 @@
         {{ ocp_install_path }}/artifacts/openshift-installer-{{ ocp_release }}/openshift-install create cluster --dir {{ ocp_install_path }}/install/        
 
 - name: OpenShift Post-Install
-  when: ocp_install == "true"
   become: true
   environment:
     GOPATH: "{{ kvm_workdir }}/go"

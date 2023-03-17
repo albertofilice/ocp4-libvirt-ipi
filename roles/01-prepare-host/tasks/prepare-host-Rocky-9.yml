@@ -83,6 +83,7 @@
     - 6443/tcp
     - 22623/tcp
     - 2379/tcp
+    - 16509/tcp  
   notify: 'reload firewalld'
 
 - name: Allow OpenShift traffic from public to Host

@@ -13,6 +13,13 @@
     name: libvirtd
     state: restarted
 
+- name: Stop libvirtd-tcp
+  become: true
+  systemd:
+    name: libvirtd-tcp.socket
+    state: stopped
+  ignore_errors: true
+
 - name: Start libvirtd-tcp
   become: true
   systemd:
