@@ -1,0 +1,194 @@
+---
+# tasks file for 03-build-openshift-installer
+- name: Compile OpenShift installer (libvirt is in development)
+  become: true
+  module_defaults:
+    shell:
+      chdir: "{{ kvm_workdir }}"
+  environment:
+    GOPATH: "{{ kvm_workdir }}/go"
+    GOCACHE: "{{ kvm_workdir }}/go-build"
+    HOME: "{{ kvm_workdir }}"
+  block:
+    - name: Create OpenShift artifacts directories
+      file:
+        path: "{{ ocp_install_path }}/artifacts/openshift-{{ item }}-{{ ocp_release }}"
+        state: directory
+        mode: u+rwX,g-w,o-w
+      with_items:
+        - installer
+        - client   
+
+    - name: Download Openshift client
+      shell: |
+        curl --compressed -J -L -o {{ ocp_install_path }}/artifacts/openshift-client-{{ ocp_release }}/openshift-client-linux-{{ ocp_release }}.tar.gz  {{ ocp_mirror }}/{{ ocp_release }}/openshift-client-linux-{{ ocp_release }}.tar.gz
+        tar -C {{ ocp_install_path }}/artifacts/openshift-client-{{ ocp_release }}/  -xvf  {{ ocp_install_path }}/artifacts/openshift-client-{{ ocp_release }}/openshift-client-linux-{{ ocp_release }}.tar.gz
+
+    - name: Clone Openshift installer repo
+      git:
+        repo: "{{ ocp_openshift_installer_repo }}"
+        version: release-4.{{  ocp_release.split(".")[1] | lower }}
+        dest: "{{ kvm_workdir }}/go/src/github.com/openshift/installer"
+        clone: yes
+        force: yes
+
+    ## NOTE : In order to reliably manage deployment we must use a matching repo for the release to be installed
+    - name: Find git commit ID for OCP release
+      shell: |
+        {{ ocp_install_path }}/artifacts/openshift-client-{{ ocp_release }}/oc adm release info {{ ocp_release }} --commit-urls \
+          |awk '{ if ( $1 == "installer" ) { n=split($2,a,"/"); print a[n]} }'
+      register:
+        installercommitid
+
+    - name: Checkout specific GIT commit ID for release {{ installercommitid.stdout }}
+      shell: |
+        git branch -d release-{{ ocp_release }} || /bin/true
+        git checkout -b release-{{ ocp_release }} {{ installercommitid.stdout }}
+      args:
+        chdir:
+          "{{ kvm_workdir }}/go/src/github.com/openshift/installer"
+
+    ## NOTE: We need to modify manifests because of https://github.com/openshift/installer/issues/1007 otherwise the console won't come up
+    - name: Change local_only to solve issue 1007
+      shell: |
+        sed -i "s/local_only = true/local_only = true\n    forwarders { \n        address = \"{{ kvm_libvirt_network_gw }}\"\n        domain = \"apps.\${var.cluster_domain}\" \n    }/g" {{ kvm_workdir }}/go/src/github.com/openshift/installer/data/data/libvirt/cluster/main.tf
+
+    - name: Change timeouts to 180m
+      shell: |
+        sed -i 's/apiTimeout := 20/apiTimeout := 180/g' {{ kvm_workdir }}/go/src/github.com/openshift/installer/cmd/openshift-install/create.go
+        sed -i 's/timeout := 40/timeout := 180/g' {{ kvm_workdir }}/go/src/github.com/openshift/installer/cmd/openshift-install/create.go
+        sed -i 's/timeout := 30/timeout := 180/g' {{ kvm_workdir }}/go/src/github.com/openshift/installer/cmd/openshift-install/create.go
+        sed -i 's/consoleRouteTimeout := 10/consoleRouteTimeout := 60/g' {{ kvm_workdir }}/go/src/github.com/openshift/installer/cmd/openshift-install/create.go
+
+    - name: Build the Openshift installer with libvirt support
+      shell: |
+        cd {{ kvm_workdir }}/go/src/github.com/openshift/installer/
+        TAGS=libvirt hack/build.sh
+
+- name: Prepare OpenShift installation
+  when: ocp_prepare == "true"
+  tags: install
+  become: true
+  environment:
+    GOPATH: "{{ kvm_workdir }}/go"
+    GOCACHE: "{{ kvm_workdir }}/go-build"
+    HOME: "{{ kvm_workdir }}"
+  module_defaults:
+    shell:
+      chdir: "{{ kvm_workdir }}"
+  block:
+    # Restart to avoid problems enabling bridges
+    - name: restart libvirt
+      become: true
+      systemd:
+        name: libvirtd
+        state: restarted
+
+    - name: Create installation directory
+      file:
+        path: "{{ ocp_install_path }}/install"
+        state: directory
+
+    - name: Create OpenShift artifacts directories
+      file:
+        path: "{{ ocp_install_path }}/artifacts/openshift-{{ item }}-{{ ocp_release }}"
+        state: directory
+        mode: u+rwX,g-w,o-w
+      with_items:
+        - installer
+        - client
+
+    - name: Download Openshift installer
+      shell: "cp {{ kvm_workdir }}/go/src/github.com/openshift/installer/bin/openshift-install {{ ocp_install_path }}/artifacts/openshift-installer-{{ ocp_release }}/"
+
+    - name: Download Openshift client
+      shell: |
+        curl --compressed -J -L -o {{ ocp_install_path }}/artifacts/openshift-client-{{ ocp_release }}/openshift-client-linux-{{ ocp_release }}.tar.gz  {{ ocp_mirror }}/{{ ocp_release }}/openshift-client-linux-{{ ocp_release }}.tar.gz
+        tar -C {{ ocp_install_path }}/artifacts/openshift-client-{{ ocp_release }}/  -xvf  {{ ocp_install_path }}/artifacts/openshift-client-{{ ocp_release }}/openshift-client-linux-{{ ocp_release }}.tar.gz
+
+    - name: Create /usr/local/bin/oc and /usr/local/bin/openshift-install symbolic links
+      ignore_errors: yes
+      become: yes
+      file:
+        src: "{{ item.value }}"
+        dest: "{{ item.key }}"
+        state: link
+        force: yes
+      with_dict:
+        "/usr/local/bin/oc": "{{ ocp_install_path }}/artifacts/openshift-client-{{ ocp_release }}/oc"
+        "/usr/local/bin/openshift-install": "{{ ocp_install_path }}/artifacts/openshift-installer-{{ ocp_release }}/openshift-install"
+
+    - name: Copy install-config.yaml
+      copy:
+        src: "{{ ocp_install_file_path }}"
+        dest: "{{ ocp_install_path }}/install-config.yaml"
+        owner: "{{ ansible_user}}"
+
+    - name: Copy install-config.yaml to install dir
+      copy:
+        src: "{{ ocp_install_file_path }}"
+        dest: "{{ ocp_install_path }}/install/install-config.yaml"
+        owner: "{{ ansible_user}}"
+
+############
+# Run installation
+
+- name: Install OpenShift
+  when: ocp_install == "true"
+  tags: install
+  become: true
+  environment:
+    GOPATH: "{{ kvm_workdir }}/go"
+    GOCACHE: "{{ kvm_workdir }}/go-build"
+    HOME: "{{ kvm_workdir }}"
+  module_defaults:
+    shell:
+      chdir: "{{ ocp_install_path }}/artifacts/openshift-installer-{{ ocp_release }}"
+  block:
+    - name:  Create manifests
+      shell: |
+        {{ ocp_install_path }}/artifacts/openshift-installer-{{ ocp_release }}/openshift-install create manifests --log-level debug --dir {{ ocp_install_path }}/install/
+
+    - name: Check if extra_manifests folder exists
+      stat:
+        path: "{{ playbook_dir }}/extra_manifests/"
+      register: extra_manifests
+
+    - name: Copy extra manifests to installation folder
+      copy:
+        src: "extra_manifests/"
+        dest: "{{ ocp_install_path }}/install/manifests/"
+        owner: "{{ ansible_user}}"
+      when: extra_manifests.stat.isdir is defined and extra_manifests.stat.isdir
+
+    - name: Configure Custom resources for Masters and Workers
+      shell: |
+        MASTER_DISK_SIZE=$(({{ ocp_master_disk }}*1073741824))
+        WORKER_DISK_SIZE=$(({{ ocp_worker_disk }}*1073741824))
+        MASTER_MEMORY_SIZE=$(({{ ocp_master_memory }}*1024))
+        WORKER_MEMORY_SIZE=$(({{ ocp_worker_memory }}*1024))
+        sed -i -e "s/volume:/volume:\n        volumeSize: ${MASTER_DISK_SIZE}/g" \
+           -e "s/.*domainMemory.*/      domainMemory: ${MASTER_MEMORY_SIZE}/g" \
+           -e 's/.*domainVcpu.*/      domainVcpu: {{ ocp_master_cpu }}/g' \
+        {{ ocp_install_path }}/install/openshift/99_openshift-cluster-api_master-machines-0.yaml
+        sed -i -e "s/volume:/volume:\n            volumeSize: ${WORKER_DISK_SIZE}/g" \
+           -e "s/.*domainMemory.*/          domainMemory: ${WORKER_MEMORY_SIZE}/g" \
+           -e 's/.*domainVcpu.*/          domainVcpu: {{ ocp_worker_cpu }}/g' \
+        {{ ocp_install_path }}/install/openshift/99_openshift-cluster-api_worker-machineset-0.yaml
+
+    - name: Display message about OpenShift install
+      debug:
+        msg: "The next task - OpenShift Install - It might take some time to produce any output, please be patient. Thank you."
+
+    - name: OpenShift install
+      shell: |
+        ############# BUG https://bugzilla.redhat.com/show_bug.cgi?id=1805034
+        if [ {{ controlPlane.replicas }} -eq 1 ]
+        then
+          {{ ocp_install_path }}/single-master-patch.sh &
+        fi
+        #############
+        export OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE={{ ocp_install_install_release_image_registry }}:{{ ocp_release }}-x86_64
+        export GOPATH={{ kvm_workdir }}/go
+        export GOCACHE={{ kvm_workdir }}/go-build
+        {{ ocp_install_path }}/artifacts/openshift-installer-{{ ocp_release }}/openshift-install create cluster --dir {{ ocp_install_path }}/install/        

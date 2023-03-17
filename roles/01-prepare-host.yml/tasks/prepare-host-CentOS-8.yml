@@ -1,0 +1,103 @@
+---
+- name: Installing KVM Packages
+  ansible.builtin.package:
+    name:
+      - "@virtualization-hypervisor"
+      - "@virtualization-client"
+      - "@virtualization-platform"
+      - "@virtualization-tools"
+      - python3-lxml
+      - firewalld
+      - gcc-c++ 
+      - libvirt-devel 
+      - tar
+      - git
+      - golang
+      - python3-netaddr
+      - unzip
+    state: present
+
+- name: Upgrade all packages
+  ansible.builtin.package:
+    name: '*'
+    state: latest
+  register: update
+
+- name: Installing Virtualization Packages And Enable advanced virtualization
+  shell: |
+    update-ca-trust yum reinstall ca-certificates
+    yum groupinstall "Virtualization Host" -y
+    yum install virt-install libguestfs-tools swtpm swtpm-tools @container-tools -y
+    dnf module disable virt -y
+    cat > /etc/yum.repos.d/CentOS-Virt.repo << EOF
+    [Advanced_Virt]
+    name=CentOS-$releasever - Advanced Virt 
+    baseurl=http://mirror.centos.org/centos/\$releasever/virt/x86_64/advanced-virtualization/
+    gpgcheck=0
+    enabled=1
+    EOF
+
+- name: Configure libvirt listen_tls
+  lineinfile:
+    path: /etc/libvirt/libvirtd.conf
+    regexp: 'listen_tls'
+    line: listen_tls = 0
+
+- name: Configure libvirt auth_tcp
+  lineinfile:
+    path: /etc/libvirt/libvirtd.conf
+    regexp: 'auth_tcp'
+    line: auth_tcp="none"
+
+- name: Configure libvirt tcp_port
+  lineinfile:
+    path: /etc/libvirt/libvirtd.conf
+    regexp: 'tcp_port'
+    line: tcp_port = "16509"
+
+- name: Enable & Start firewalld
+  ansible.builtin.service:
+    name: firewalld
+    state: started
+    enabled: true
+
+- name: Allow NFS traffic from VM's to Host
+  ansible.posix.firewalld:
+    zone: libvirt
+    state: enabled
+    permanent: yes
+    service: "{{ item }}"
+  with_items:
+    - nfs
+    - mountd
+    - rpc-bind
+  notify: 'reload firewalld'
+
+- name: Allow OpenShift traffic from VM's to Host
+  ansible.posix.firewalld:
+    zone: libvirt
+    state: enabled
+    permanent: yes
+    port: "{{ item }}"
+  with_items:
+    - 80/tcp
+    - 443/tcp
+    - 6443/tcp
+    - 22623/tcp
+    - 2379/tcp
+  notify: 'reload firewalld'
+
+- name: Allow OpenShift traffic from public to Host
+  ansible.posix.firewalld:
+    zone: public
+    state: enabled
+    permanent: yes
+    port: "{{ item }}"
+  with_items:
+    - 80/tcp
+    - 443/tcp
+    - 6443/tcp
+  notify: 'reload firewalld'
+
+- name: firewalld reload
+  ansible.builtin.command: firewall-cmd --reload

@@ -1,0 +1,240 @@
+---
+- name: Include OS specific part
+  ansible.builtin.include_tasks: "prepare-host-{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+
+- name: Enable and Start libvirtd
+  ansible.builtin.service:
+    name: libvirtd
+    state: started
+    enabled: yes
+
+- name: 'Restart libvirtd'
+  ansible.builtin.service:
+    name: libvirtd
+    state: restarted
+
+- name: Start libvirtd-tcp
+  become: true
+  systemd:
+    name: libvirtd-tcp
+    state: started
+    enabled: yes
+
+- name: Verify KVM module is loaded
+  ansible.builtin.shell: "set -o pipefail && lsmod | grep -i kvm"
+  register: result
+  failed_when: "result.rc != 0"
+
+- name: Create SSH key for root
+  ansible.builtin.user:
+    name: root
+    generate_ssh_key: yes
+    ssh_key_bits: 2048
+    ssh_key_file: "{{ ssh_public_key_location }}"
+
+- name: Check /etc/systemd/network/10-mainif.network
+  ansible.builtin.stat:
+    path: /etc/systemd/network/10-mainif.network
+  register: stat_result
+
+- name: Add IPForward=ipv4 to /etc/systemd/network/10-mainif.network
+  ansible.builtin.lineinfile:
+    path: /etc/systemd/network/10-mainif.network
+    line: 'IPForward=ipv4'
+    insertafter: '^\[Network\]'
+    regexp: '^IPForward='
+  when: stat_result.stat.exists
+
+
+- name: Create a directory /etc/NetworkManager/conf.d if it does not exist
+  file:
+    path: /etc/NetworkManager/conf.d
+    state: directory
+    mode: '0755'
+
+- name: Finish Host network configuration
+  copy:
+    dest:  /etc/NetworkManager/conf.d/openshift.conf
+    content: |
+      [main]
+      dns=dnsmasq
+
+- name: Create a directory /etc/NetworkManager/dnsmasq.d if it does not exist
+  file:
+    path: /etc/NetworkManager/dnsmasq.d
+    state: directory
+    mode: '0755'
+
+- name: DNS config without lb
+  become: true
+  block:
+    - name: Finish Host network configuration
+      copy:
+        dest:  /etc/NetworkManager/dnsmasq.d/openshift.conf
+        content: |
+          listen-address=127.0.0.1
+          bind-interfaces
+          server=8.8.8.8
+          address=/{{ cluster_name }}.{{ basedomain }}/{{ 192.168.126.1  }}
+
+- name: Reload network
+  become: true
+  systemd:
+    name: NetworkManager
+    state: reloaded
+
+- name: Enable Nested Virtualization
+  shell: |
+    cat /proc/cpuinfo  | grep "model name" | head -n 1 | grep -i Intel
+    if [ $? -ne 0 ]; then   PROC=amd; else     PROC=intel; fi
+    modprobe -r kvm_$PROC
+    modprobe kvm_$PROC nested=1
+    sed -i "s/#options kvm_$PROC nested=1/options kvm_$PROC nested=1/g"  /etc/modprobe.d/kvm.conf
+  when: kvm_nestedvirtualization == "true"    
+
+- name: Check if new kernel has been installed and local execution
+  ansible.builtin.fail:
+    msg: "A new kernel has been installed, please reboot and run the playbook again."
+  when:
+    - ansible_host == "localhost"
+
+- name: Create Initial required directory as {{ kvm_workdir }}
+  tags: install
+  file:
+    path: "{{ item }}"
+    owner: root
+    group: root
+    mode: 0755
+    state: directory
+  with_items:
+    - "{{ kvm_workdir }}"
+
+- name: Prepare/Create directories
+  become: true
+  tags: install
+  module_defaults:
+    shell:
+      chdir: "{{ kvm_workdir }}"
+  block:
+    - name: Create required directories under {{ kvm_workdir }}
+      tags: install
+      file:
+        path: "{{ item }}"
+        owner: root
+        group: root
+        mode: 0755
+        state: directory
+      with_items:
+        - "{{ kvm_workdir }}"
+        - "{{ kvm_workdir }}/go"
+        - "{{ kvm_workdir }}/go-build"
+        - "{{ kvm_workdir }}/ocp"
+
+    - name: Create pool directory for images under {{ kvm_pool_location }}
+      tags: install
+      file:
+        path: "{{ item }}"
+        owner: root
+        group: root
+        mode: 0755
+        state: directory
+        setype: virt_var_lib_t
+      with_items:
+        - "{{ kvm_pool_location }}"
+
+    - name: Create /var/lib/libvirt/openshift-images symlink to {{ kvm_pool_location }}
+      tags: install
+      file:
+        src: "{{ kvm_pool_location }}"
+        dest: /var/lib/libvirt/openshift-images
+        state: link
+        setype: virt_var_lib_t
+      when: kvm_pool_location  != "/var/lib/libvirt/openshift-images"
+
+    - name: Repair SELinux contexts ( {{ kvm_pool_location }} )
+      tags: install
+      changed_when: false
+      shell: |
+        /sbin/semanage fcontext -a -t virt_var_lib_t "{{ kvm_pool_location }}(/.*)?"
+        /sbin/restorecon -rv {{ kvm_pool_location }}
+
+- name: Install NFS requirements
+  when: nfs_storage == "true"
+  become: true
+  tags: install
+  block:
+    - name: Install needed packages for NFS
+      yum:
+        name:
+          - nfs-utils
+          - rpcbind
+        state: latest
+
+    - name: Set user and group for NFS nobody ( Fedora/Centos/RHEL 8 )
+      set_fact:
+        nfs_user: "nobody"
+        nfs_group: "nobody"
+
+    - name: Set user and group for NFS nobody ( Fedora/Centos/RHEL 7 )
+      set_fact:
+        nfs_user: "nfsnobody"
+        nfs_group: "nfsnobody"
+
+    - name: Create mountable dirs ( Fedora / CentOS / RHEL )
+      when: ansible_distribution == "Fedora" or
+            ansible_distribution == "CentOS" or
+            ansible_distribution == "RedHat"
+      ignore_errors: yes
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: 0777
+        owner: "{{ nfs_user }}"
+        group: "{{ nfs_group }}"
+      with_items:
+        - "{{ nfs_export_path }}/"
+        - "{{ nfs_export_path }}/{{ metadata.name }}"
+        - "{{ nfs_export_path }}/{{ metadata.name }}/static"
+        - "{{ nfs_export_path }}/{{ metadata.name }}/static/registry"
+        - "{{ nfs_export_path }}/{{ metadata.name }}/dynamic"
+
+    - name: FIX permissions
+      shell: |
+        chmod -R 777 {{ nfs_export_path }}/*
+
+    - name: FIX permissions
+      shell: |
+        chmod -R 777 {{ nfs_export_path }}/*
+
+    - name: Configure /etc/exports
+      when: nfs_etc_exports_overwrite == "true"
+      copy:
+        dest: "/etc/exports"
+        content: |
+          {{ nfs_export_path }} *(rw,sync,no_root_squash)
+
+    - name: Enable nfs-server
+      when: nfs_etc_exports_overwrite == "true"
+      systemd:
+        name: nfs-server
+        state: restarted
+        enabled: True
+
+
+- name: Reboot in case of remote execution
+  block:
+    - name: Reboot server
+      ansible.builtin.shell: sync && sleep 2 && shutdown -r now
+      async: 1
+      poll: 0
+      changed_when: true
+      failed_when: false
+
+    - name: Wait for the reboot to complete
+      ansible.builtin.wait_for_connection:
+        connect_timeout: 10
+        sleep: 5
+        delay: 5
+        timeout: 300
+  when:
+    - ansible_host != "localhost"

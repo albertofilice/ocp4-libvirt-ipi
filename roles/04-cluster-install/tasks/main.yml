@@ -1,0 +1,128 @@
+---
+# tasks file for 04-cluster-install
+- name: Compile OpenShift installer (libvirt is in development)
+  become: true
+  environment:
+    GOPATH: "{{ kvm_workdir }}/go"
+    GOCACHE: "{{ kvm_workdir }}/go-build"
+    HOME: "{{ kvm_workdir }}"
+  block:
+    - name: Display message about OpenShift install
+      debug:
+        msg: "The next task - OpenShift Install - It might take some time to produce any output, please be patient. Thank you."
+
+    - name: OpenShift install
+      shell: |
+        export OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE={{ ocp_install_install_release_image_registry }}:{{ ocp_release }}-x86_64
+        export GOPATH={{ kvm_workdir }}/go
+        export GOCACHE={{ kvm_workdir }}/go-build
+        {{ ocp_install_path }}/artifacts/openshift-installer-{{ ocp_release }}/openshift-install create cluster --dir {{ ocp_install_path }}/install/        
+
+- name: OpenShift Post-Install
+  when: ocp_install == "true"
+  become: true
+  environment:
+    GOPATH: "{{ kvm_workdir }}/go"
+    GOCACHE: "{{ kvm_workdir }}/go-build"
+    HOME: "{{ kvm_workdir }}"
+  module_defaults:
+    shell:
+      chdir: "{{ kvm_workdir }}"
+  block:
+    - name: Copy kubeconfig for admin
+      shell: "mkdir ~/.kube ; cp {{ ocp_install_path }}/install/auth/kubeconfig ~/.kube/config "
+
+    - name: Trust locally Ingress default CA
+      shell: |
+        while [[ $(oc -n openshift-ingress get secret/router-certs-default | grep router-certs-default  > /dev/null ; echo $?) != "0" ]]; do echo "Waiting for router-certs-default object" && sleep 10; done
+        oc -n openshift-ingress extract secret/router-certs-default
+        sudo cp tls.crt /etc/pki/ca-trust/source/anchors/ingress-cacert-{{ metadata.name }}.pem
+        sudo chown root:root /etc/pki/ca-trust/source/anchors/ingress-cacert-{{ metadata.name }}.pem
+        sudo chmod 0644 /etc/pki/ca-trust/source/anchors/ingress-cacert-{{ metadata.name }}.pem
+        sudo update-ca-trust extract
+        sudo rm tls.crt tls.key
+
+    - name: Configure Autocompletion
+      shell: "oc completion bash > oc_bash_completion   ;  sudo cp oc_bash_completion /etc/bash_completion.d/ ; yum install -y bash-completion"
+
+    - name: Create post-installation directory
+      file:
+        path: "{{ ocp_install_path }}/post-install"
+        state: directory
+
+    - name: Copy post-install scripts
+      copy:
+        src: "post-install-scripts/"
+        dest: "{{ ocp_install_path }}/post-install/"
+
+    - name: Write out nfs-registry env file
+      template:
+        src: nfs-registry/env.j2
+        dest: "{{ ocp_install_path }}/post-install/nfs-registry/env"
+
+    - name: Write out nfs-autoprovisioner env file
+      template:
+        src: nfs-autoprovisioner/env.j2
+        dest: "{{ ocp_install_path }}/post-install/nfs-autoprovisioner/env"
+
+    - name: Configure Registry Storage (NFS)
+      shell: |
+        #/bin/bash
+        /usr/local/bin/oc process -f template.yaml --param-file=env | /usr/local/bin/oc create -f -
+        RESOURCE="cluster"
+        while [[ $(/usr/local/bin/oc get configs.imageregistry.operator.openshift.io cluster | grep $RESOURCE  > /dev/null ; echo $?) != "0" ]]; do echo "Waiting for $RESOURCE object" && sleep 10; done
+        /usr/local/bin/oc patch configs.imageregistry.operator.openshift.io cluster --type='json' -p='[{"op": "replace", "path": "/spec/managementState", "value": "Managed" },{"op": "remove", "path": "/spec/storage" },{"op": "add", "path": "/spec/storage", "value": {"pvc":{"claim": ""}}}]'
+
+      when: nfs_storage  == "true"
+
+    - name: Configure Registry Storage (Ephemeral)
+      shell: |
+        oc patch configs.imageregistry.operator.openshift.io cluster --type merge --patch '{"spec":{"storage":{"emptyDir":{}}}}'
+      when: nfs_storage  != "true"
+
+    - name: Configure NFS Storage autoprovisioner (not supported)
+      shell: |
+        NAMESPACE=$(grep NAMESPACE env | awk -F '=' '{print $2}' | sed 's/"//g')
+        oc process -f template.yaml --param-file=env | oc create -n ${NAMESPACE} -f -
+        oc adm policy add-scc-to-user hostmount-anyuid system:serviceaccount:nfs-autoprovisioner:nfs-client-provisioner
+      when: nfs_storage  == "true"        
+
+
+    - name: Enable VM auto-start
+      become: true
+      ignore_errors: yes
+      shell: |
+        VMS=$(virsh list | grep 'master\|worker' | awk '{print $2}')
+        for i in $VMS
+        do
+          virsh autostart $i
+        done      
+
+    - name: Access information
+      become: true
+      tags: install
+      ignore_errors: yes
+      block:
+        - name: Get Web Console URL
+          shell: "oc get route -n openshift-console | grep https | awk '{print $2}' "
+          register: webconsoleurl
+
+        - name: Get kubeadmin password
+          shell: "tail {{ ocp_install_path }}/install/.openshift_install.log | grep password: | awk -F '\"' '{print  substr($7, 1, length($7)-1)}'"
+          register: kubeadminpass
+
+        - name: OpenShift Web Console access
+          debug:
+            msg:
+              - "                                                                                                        "
+              - "                                                                                                        "
+              - "   ***********************************************************************************************      "
+              - "                                         WEB CONSOLE ACCESS                                             "
+              - "   ***********************************************************************************************      "
+              - "                                                                                                        "
+              - "   https://{{ webconsoleurl.stdout }}      "
+              - "                                                                                                        "
+              - "                                                                                                        "
+              - "   Username: kubeadmin     Password: {{ kubeadminpass.stdout  }}                                            "
+              - "                                                                                                        "
+              - "   ***********************************************************************************************      "
