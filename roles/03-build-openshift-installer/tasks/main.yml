@@ -59,6 +59,11 @@
         sed -i 's/timeout := 40/timeout := 180/g' {{ kvm_workdir }}/go/src/github.com/openshift/installer/cmd/openshift-install/create.go
         sed -i 's/timeout := 30/timeout := 180/g' {{ kvm_workdir }}/go/src/github.com/openshift/installer/cmd/openshift-install/create.go
         sed -i 's/consoleRouteTimeout := 10/consoleRouteTimeout := 60/g' {{ kvm_workdir }}/go/src/github.com/openshift/installer/cmd/openshift-install/create.go
+        
+
+    - name: Change Default Graphics for KVM
+      shell: |
+        sed -i 's/spice/vnc/g' {{ kvm_workdir }}/go/src/github.com/openshift/installer/terraform/providers/libvirt/vendor/github.com/dmacvicar/terraform-provider-libvirt/libvirt/resource_libvirt_domain.go
 
     - name: Build the Openshift installer with libvirt support
       shell: |
