@@ -170,3 +170,9 @@
            -e 's/.*domainVcpu.*/          domainVcpu: {{ ocp_worker_cpu }}/g' \
         {{ ocp_install_path }}/install/openshift/99_openshift-cluster-api_worker-machineset-0.yaml
 
+    - name: No Workers configuration
+      when: masters_schedulable == true
+      block:
+        - name:  Configure manifests to support no worker nodes
+          shell: |
+            sed -i 's/mastersSchedulable: false/mastersSchedulable: true/' {{ ocp_install_path }}/install//manifests/cluster-scheduler-02-config.yml

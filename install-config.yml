@@ -1,20 +1,20 @@
 apiVersion: v1
-baseDomain: <Domain>
+baseDomain: < CHANGEME my.domain >
 compute:
 - architecture: amd64
   hyperthreading: Enabled
   name: worker
   platform: {}
-  replicas: 3
+  replicas: < CHANGEME replicas >
 controlPlane:
   architecture: amd64
   hyperthreading: Enabled
   name: master
   platform: {}
-  replicas: 3
+  replicas: < CHANGEME replicas >
 metadata:
   creationTimestamp: null
-  name: ocp4
+  name: ocp
 networking:
   clusterNetwork:
   - cidr: 10.128.0.0/14
@@ -26,10 +26,10 @@ networking:
   - 172.30.0.0/16
 platform:
   libvirt:
-    URI: qemu+tcp://192.168.122.1/system
+    URI: qemu+tcp://< CHANGEME kvm ip on the "kvm_interface" interface >/system
     network:
       if: tt0
 publish: External
-pullSecret: '<Pull Secrets>'
+pullSecret: '< CHANGEME pull secret >'
 sshKey: |
-  ssh-rsa .....
+  < CHANGEME ssh key >

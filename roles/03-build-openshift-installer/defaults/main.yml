@@ -1,2 +1,3 @@
 ---
 # defaults file for 03-build-openshift-installer
+masters_schedulable: false

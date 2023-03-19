@@ -1,2 +1,4 @@
 ---
 # defaults file for 02-loadbalancer
+lb_name: loadbalancer
+lb_container_image: "quay.io/redhat-emea-ssa-team/openshift-4-loadbalancer"

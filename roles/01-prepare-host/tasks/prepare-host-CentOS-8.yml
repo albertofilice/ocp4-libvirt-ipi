@@ -86,7 +86,7 @@
     - 22623/tcp
     - 2379/tcp
     - 16509/tcp
-  notify: 'reload firewalld'
+    - 32768-65535/tcp
 
 - name: Allow OpenShift traffic from public to Host
   ansible.posix.firewalld:
@@ -98,7 +98,8 @@
     - 80/tcp
     - 443/tcp
     - 6443/tcp
-  notify: 'reload firewalld'
 
-- name: firewalld reload
-  ansible.builtin.command: firewall-cmd --reload
+- name: reload service firewalld
+  systemd:
+    name: firewalld
+    state: reloaded

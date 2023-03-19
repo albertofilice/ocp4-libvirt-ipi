@@ -28,6 +28,14 @@
     enabled: yes
   ignore_errors: true
 
+
+- name: iptables
+  shell: |
+    sudo iptables -I INPUT -p tcp -s 192.168.126.0/24 -d 192.168.122.1 --dport 16509 -j ACCEPT -m comment --comment "Allow insecure libvirt clients"
+    sudo firewall-cmd --add-rich-rule "rule service name="libvirt" reject"
+    sudo firewall-cmd --zone=libvirt --add-service=libvirt
+    sudo firewall-cmd --reload  
+
 - name: Verify KVM module is loaded
   ansible.builtin.shell: "set -o pipefail && lsmod | grep -i kvm"
   register: result
@@ -83,7 +91,7 @@
           listen-address=127.0.0.1
           bind-interfaces
           server=8.8.8.8
-          address=/{{ cluster_name }}.{{ basedomain }}/192.168.126.1
+          address=/{{ basedomain }}/192.168.126.1
 
 - name: Reload network
   become: true
