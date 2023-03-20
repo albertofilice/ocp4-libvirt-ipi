@@ -29,8 +29,8 @@
     clusteradmin: <CHANGEME clusteradmin>
     clusterpassword: <CHANGEME clusterpassword> 
     letsencrypt_account_email: <CHANGEME letsencrypt_account_email>
-    cloudflare_account_email: <CHANGEME cloudflare_account_email>
-    cloudflare_account_api_token: <CHANGEME cloudflare_account_api_token>
+    #cloudflare_account_email: <CHANGEME cloudflare_account_email>
+    #cloudflare_account_api_token: <CHANGEME cloudflare_account_api_token>
 
   roles:
     - {role: '01-prepare-host', tags: 'prereq'}
