@@ -29,8 +29,8 @@ All Variable for playbook can be found in main.yml and install-config.yml
 | ocp_install_path |        |  {{ workdir }}/ocp |
 | ocp_mirror |    Default user HOME/ocp    |  https://mirror.openshift.com/pub/openshift-v4/clients/ocp |
 | ocp_openshift_installer_repo |        |  https://github.com/openshift/installer |
-| ocp_install_install_release_image_registry |        |  quay.io/openshift-release-dev/ocp-release |
-| ocp_release |        |  4.11.20 |
+| ocp_install_install_release_image_registry |    for okd use https://quay.io/openshift/okd    |  quay.io/openshift-release-dev/ocp-release |
+| ocp_release |    for okd use 4.11.0-0.okd-2023-01-14-152430	   |  4.11.20 |
 | ocp_master_memory |        |  24 |
 | ocp_master_cpu |        |  8 |
 | ocp_master_disk |        |  150 |
@@ -57,6 +57,11 @@ cd ocp4-libvirt-ipi
 #Change install-config.yml and main.yml variable.
 ansible-playbook main.yml
 ```
+
+OKD
+----------------
+
+We haven't been able to test installing okd at this time, so for okd the playbook may not work.
 
 License
 -------
