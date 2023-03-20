@@ -49,29 +49,23 @@
         path: "{{ ocp_install_path }}/post-install"
         state: directory
 
-    - name: Copy post-install scripts
-      copy:
-        src: "post-install-scripts/"
-        dest: "{{ ocp_install_path }}/post-install/"
-
     - name: Write out nfs-registry env file
       template:
-        src: nfs-registry/env.j2
-        dest: "{{ ocp_install_path }}/post-install/nfs-registry/env"
+        src: pvc-registry.j2
+        dest: "{{ ocp_install_path }}/post-install/pvc.yaml"
 
     - name: Write out nfs-autoprovisioner env file
       template:
-        src: nfs-autoprovisioner/env.j2
-        dest: "{{ ocp_install_path }}/post-install/nfs-autoprovisioner/env"
+        src: nfs-template.j2
+        dest: "{{ ocp_install_path }}/post-install/nfs.yaml"
 
     - name: Configure Registry Storage (NFS)
       shell: |
         #/bin/bash
-        /usr/local/bin/oc process -f template.yaml --param-file=env | /usr/local/bin/oc create -f -
+        /usr/local/bin/oc process -f {{ ocp_install_path }}/post-install/pvc.yaml | /usr/local/bin/oc create -f -
         RESOURCE="cluster"
         while [[ $(/usr/local/bin/oc get configs.imageregistry.operator.openshift.io cluster | grep $RESOURCE  > /dev/null ; echo $?) != "0" ]]; do echo "Waiting for $RESOURCE object" && sleep 10; done
-        /usr/local/bin/oc patch configs.imageregistry.operator.openshift.io cluster --type='json' -p='[{"op": "replace", "path": "/spec/managementState", "value": "Managed" },{"op": "remove", "path": "/spec/storage" },{"op": "add", "path": "/spec/storage", "value": {"pvc":{"claim": ""}}}]'
-
+        /usr/local/bin/oc patch configs.imageregistry.operator.openshift.io cluster --type='json' -p='[{"op": "replace", "path": "/spec/managementState", "value": "Managed" },{"op": "remove", "path": "/spec/storage" },{"op": "add", "path": "/spec/storage", "value": {"pvc":{"claim": "nfsregistry"}}}]'
       when: nfs_storage  == "true"
 
     - name: Configure Registry Storage (Ephemeral)
@@ -82,7 +76,7 @@
     - name: Configure NFS Storage autoprovisioner (not supported)
       shell: |
         NAMESPACE=$(grep NAMESPACE env | awk -F '=' '{print $2}' | sed 's/"//g')
-        oc process -f template.yaml --param-file=env | oc create -n ${NAMESPACE} -f -
+        oc process -f {{ ocp_install_path }}/post-install/nfs.yaml | oc create -n openshift-storage -f -
         oc adm policy add-scc-to-user hostmount-anyuid system:serviceaccount:nfs-autoprovisioner:nfs-client-provisioner
       when: nfs_storage  == "true"        
 

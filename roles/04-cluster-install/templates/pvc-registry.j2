@@ -15,8 +15,8 @@ objects:
     capacity:
       storage: "100Gi"
     nfs:
-      path: "${NFS_PATH}"
-      server: "${NFS_SERVER}"
+      path: " {{ nfs_export_path }}"
+      server: "{{ ocp_cluster_net_gw }}"
     persistentVolumeReclaimPolicy: Recycle
 parameters:
   - name: NFS_SERVER

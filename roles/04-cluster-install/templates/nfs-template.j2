@@ -8,7 +8,7 @@ objects:
 - kind: Namespace
   apiVersion: v1
   metadata:
-    name: "${NAMESPACE_NFS}"
+    name: "openshift-storage"
 
 
 - apiVersion: v1
@@ -16,7 +16,7 @@ objects:
   metadata:
     name: nfs-client-provisioner
     # replace with namespace where provisioner is deployed
-    namespace: "${NAMESPACE_NFS}"
+    namespace: "openshift-storage"
 
 - kind: ClusterRole
   apiVersion: rbac.authorization.k8s.io/v1
@@ -47,7 +47,7 @@ objects:
     - kind: ServiceAccount
       name: nfs-client-provisioner
       # replace with namespace where provisioner is deployed
-      namespace: "${NAMESPACE_NFS}"
+      namespace: "openshift-storage"
   roleRef:
     kind: ClusterRole
     name: nfs-client-provisioner-runner
@@ -58,7 +58,7 @@ objects:
   metadata:
     name: leader-locking-nfs-client-provisioner
     # replace with namespace where provisioner is deployed
-    namespace: "${NAMESPACE_NFS}"
+    namespace: "openshift-storage"
   rules:
     - apiGroups: [""]
       resources: ["endpoints"]
@@ -69,12 +69,12 @@ objects:
   metadata:
     name: leader-locking-nfs-client-provisioner
     # replace with namespace where provisioner is deployed
-    namespace: "${NAMESPACE_NFS}"
+    namespace: "openshift-storage"
   subjects:
     - kind: ServiceAccount
       name: nfs-client-provisioner
       # replace with namespace where provisioner is deployed
-      namespace: "${NAMESPACE_NFS}"
+      namespace: "openshift-storage"
   roleRef:
     kind: Role
     name: leader-locking-nfs-client-provisioner
@@ -82,7 +82,7 @@ objects:
 
 - kind: Deployment
   apiVersion: apps/v1
-  namespace: "${NAMESPACE_NFS}"
+  namespace: "openshift-storage"
   metadata:
     name: nfs-client-provisioner
   spec:
@@ -108,14 +108,14 @@ objects:
               - name: PROVISIONER_NAME
                 value: k8s-sigs.io/nfs-subdir-external-provisioner
               - name: NFS_SERVER
-                value: ${NFS_SERVER}
+                value: "{{ ocp_cluster_net_gw }}"
               - name: NFS_PATH
-                value: ${NFS_PATH}
+                value: "{{ nfs_export_path }}"
         volumes:
           - name: nfs-client-root
             nfs:
-              server: ${NFS_SERVER}
-              path: ${NFS_PATH}
+              server: "{{ ocp_cluster_net_gw }}"
+              path: "{{ nfs_export_path }}"
 
 - kind: StorageClass
   apiVersion: storage.k8s.io/v1

@@ -26,6 +26,7 @@
     ocp_worker_disk: 150
     ocp_api_vip: "192.168.126.11"
     ocp_apps_vip: "192.168.126.51"
+    ocp_cluster_net_gw: "192.168.126.1"
 
   roles:
     - {role: '01-prepare-host'}
