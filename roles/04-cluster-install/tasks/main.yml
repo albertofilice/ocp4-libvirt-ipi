@@ -1,5 +1,12 @@
 ---
 # tasks file for 04-cluster-install
+#
+- include_vars: "{{ ocp_install_file_path }}"
+
+- name: Installing Helm
+  shell: |
+    curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
 - name: Compile OpenShift installer (libvirt is in development)
   become: true
   environment:
@@ -11,12 +18,12 @@
       debug:
         msg: "The next task - OpenShift Install - It might take some time to produce any output, please be patient. Thank you."
 
-    - name: OpenShift install
-      shell: |
-        export OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE={{ ocp_install_install_release_image_registry }}:{{ ocp_release }}-x86_64
-        export GOPATH={{ kvm_workdir }}/go
-        export GOCACHE={{ kvm_workdir }}/go-build
-        {{ ocp_install_path }}/artifacts/openshift-installer-{{ ocp_release }}/openshift-install create cluster --dir {{ ocp_install_path }}/install/        
+#    - name: OpenShift install
+#      shell: |
+#        export OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE={{ ocp_install_install_release_image_registry }}:{{ ocp_release }}-x86_64
+#        export GOPATH={{ kvm_workdir }}/go
+#        export GOCACHE={{ kvm_workdir }}/go-build
+#        {{ ocp_install_path }}/artifacts/openshift-installer-{{ ocp_release }}/openshift-install create cluster --dir {{ ocp_install_path }}/install/        
 
 - name: OpenShift Post-Install
   become: true
@@ -59,15 +66,6 @@
         src: nfs-template.j2
         dest: "{{ ocp_install_path }}/post-install/nfs.yaml"
 
-    - name: Configure Registry Storage (NFS)
-      shell: |
-        #/bin/bash
-        /usr/local/bin/oc process -f {{ ocp_install_path }}/post-install/pvc.yaml | /usr/local/bin/oc create -f -
-        RESOURCE="cluster"
-        while [[ $(/usr/local/bin/oc get configs.imageregistry.operator.openshift.io cluster | grep $RESOURCE  > /dev/null ; echo $?) != "0" ]]; do echo "Waiting for $RESOURCE object" && sleep 10; done
-        /usr/local/bin/oc patch configs.imageregistry.operator.openshift.io cluster --type='json' -p='[{"op": "replace", "path": "/spec/managementState", "value": "Managed" },{"op": "remove", "path": "/spec/storage" },{"op": "add", "path": "/spec/storage", "value": {"pvc":{"claim": "nfsregistry"}}}]'
-      when: nfs_storage  == "true"
-
     - name: Configure Registry Storage (Ephemeral)
       shell: |
         oc patch configs.imageregistry.operator.openshift.io cluster --type merge --patch '{"spec":{"storage":{"emptyDir":{}}}}'
@@ -75,11 +73,13 @@
 
     - name: Configure NFS Storage autoprovisioner (not supported)
       shell: |
-        NAMESPACE=$(grep NAMESPACE env | awk -F '=' '{print $2}' | sed 's/"//g')
-        oc process -f {{ ocp_install_path }}/post-install/nfs.yaml | oc create -n openshift-storage -f -
-        oc adm policy add-scc-to-user hostmount-anyuid system:serviceaccount:nfs-autoprovisioner:nfs-client-provisioner
+        oc new-project nfs-storage
+        helm repo add nfs-subdir-external-provisioner https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/
+        helm install -n nfs-storage nfs-subdir-external-provisioner nfs-subdir-external-provisioner/nfs-subdir-external-provisioner \
+            --set nfs.server={{ ocp_cluster_net_gw }} \
+            --set nfs.path={{ nfs_export_path  }}
+        oc adm policy add-scc-to-user privileged -z nfs-subdir-external-provisioner    
       when: nfs_storage  == "true"        
-
 
     - name: Enable VM auto-start
       become: true
@@ -119,3 +119,14 @@
               - "   Username: kubeadmin     Password: {{ kubeadminpass.stdout  }}                                            "
               - "                                                                                                        "
               - "   ***********************************************************************************************      "
+
+
+    - name: Configure Registry Storage (NFS)
+      when: nfs_storage  == "true"
+      shell: |
+        #/bin/bash
+        /usr/local/bin/oc process -f {{ ocp_install_path }}/post-install/pvc.yaml | /usr/local/bin/oc create -n openshift-storage -f -
+        RESOURCE="cluster"
+        while [[ $(/usr/local/bin/oc get configs.imageregistry.operator.openshift.io cluster | grep $RESOURCE  > /dev/null ; echo $?) != "0" ]]; do echo "Waiting for 
+        $RESOURCE object" && sleep 10; done
+        /usr/local/bin/oc patch configs.imageregistry.operator.openshift.io cluster --type='json' -p='[{"op": "replace", "path": "/spec/managementState", "value": "Managed" },{"op": "remove", "path": "/spec/storage" },{"op": "add", "path": "/spec/storage", "value": {"pvc":{"claim": "nfsregistry"}}}]'

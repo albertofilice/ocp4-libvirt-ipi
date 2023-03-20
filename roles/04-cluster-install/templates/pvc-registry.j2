@@ -1,29 +1,24 @@
 kind: Template
-apiVersion: v1
+apiVersion: template.openshift.io/v1
 metadata:
   annotations:
     tags: nfsregistry
+  labels:
+    app: nfs-registry-storage
   name: nfsregistry
 objects:
-- kind: PersistentVolume
+- kind: PersistentVolumeClaim
   apiVersion: v1
+  labels:
+    app: registry-storage
   metadata:
-    name: nfs-registry-storage
+    name: registry-storage
+    namespace: openshift-image-registry
   spec:
     accessModes:
-    - ReadWriteMany
-    capacity:
-      storage: "100Gi"
-    nfs:
-      path: " {{ nfs_export_path }}"
-      server: "{{ ocp_cluster_net_gw }}"
-    persistentVolumeReclaimPolicy: Recycle
-parameters:
-  - name: NFS_SERVER
-    displayName: NFS Server IP
-    description: IP of the NFS server
-    required: true
-  - name: NFS_PATH
-    displayName: NFS Path
-    description: Path on the NFS server
-    required: true
+      - ReadWriteOnce
+    resources:
+      requests:
+        storage: 100Gi
+    storageClassName: nfs-client
+    volumeMode: Filesystem
