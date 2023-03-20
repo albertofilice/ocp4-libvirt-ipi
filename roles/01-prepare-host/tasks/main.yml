@@ -1,4 +1,6 @@
 ---
+- include_vars: "{{ ocp_install_file_path }}"
+
 - name: Include OS specific part
   ansible.builtin.include_tasks: "prepare-host-{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
 
@@ -191,15 +193,7 @@
         nfs_user: "nobody"
         nfs_group: "nobody"
 
-    - name: Set user and group for NFS nobody ( Fedora/Centos/RHEL 7 )
-      set_fact:
-        nfs_user: "nfsnobody"
-        nfs_group: "nfsnobody"
-
     - name: Create mountable dirs ( Fedora / CentOS / RHEL )
-      when: ansible_distribution == "Fedora" or
-            ansible_distribution == "CentOS" or
-            ansible_distribution == "RedHat"
       ignore_errors: yes
       file:
         path: "{{ item }}"
@@ -223,14 +217,12 @@
         chmod -R 777 {{ nfs_export_path }}/*
 
     - name: Configure /etc/exports
-      when: nfs_etc_exports_overwrite == "true"
       copy:
         dest: "/etc/exports"
         content: |
           {{ nfs_export_path }} *(rw,sync,no_root_squash)
 
     - name: Enable nfs-server
-      when: nfs_etc_exports_overwrite == "true"
       systemd:
         name: nfs-server
         state: restarted
