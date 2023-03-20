@@ -108,7 +108,7 @@
     modprobe -r kvm_$PROC
     modprobe kvm_$PROC nested=1
     sed -i "s/#options kvm_$PROC nested=1/options kvm_$PROC nested=1/g"  /etc/modprobe.d/kvm.conf
-  when: kvm_nestedvirtualization == "true"    
+  when: nestedvirtualization == "true"    
 
 - name: Check if new kernel has been installed and local execution
   ansible.builtin.fail:
@@ -116,7 +116,7 @@
   when:
     - ansible_host == "localhost"
 
-- name: Create Initial required directory as {{ kvm_workdir }}
+- name: Create Initial required directory as {{ workdir }}
   tags: install
   file:
     path: "{{ item }}"
@@ -125,16 +125,16 @@
     mode: 0755
     state: directory
   with_items:
-    - "{{ kvm_workdir }}"
+    - "{{ workdir }}"
 
 - name: Prepare/Create directories
   become: true
   tags: install
   module_defaults:
     shell:
-      chdir: "{{ kvm_workdir }}"
+      chdir: "{{ workdir }}"
   block:
-    - name: Create required directories under {{ kvm_workdir }}
+    - name: Create required directories under {{ workdir }}
       tags: install
       file:
         path: "{{ item }}"
@@ -143,12 +143,12 @@
         mode: 0755
         state: directory
       with_items:
-        - "{{ kvm_workdir }}"
-        - "{{ kvm_workdir }}/go"
-        - "{{ kvm_workdir }}/go-build"
-        - "{{ kvm_workdir }}/ocp"
+        - "{{ workdir }}"
+        - "{{ workdir }}/go"
+        - "{{ workdir }}/go-build"
+        - "{{ workdir }}/ocp"
 
-    - name: Create pool directory for images under {{ kvm_pool_location }}
+    - name: Create pool directory for images under {{ pool_location }}
       tags: install
       file:
         path: "{{ item }}"
@@ -158,23 +158,23 @@
         state: directory
         setype: virt_var_lib_t
       with_items:
-        - "{{ kvm_pool_location }}"
+        - "{{ pool_location }}"
 
-    - name: Create /var/lib/libvirt/openshift-images symlink to {{ kvm_pool_location }}
+    - name: Create /var/lib/libvirt/openshift-images symlink to {{ pool_location }}
       tags: install
       file:
-        src: "{{ kvm_pool_location }}"
+        src: "{{ pool_location }}"
         dest: /var/lib/libvirt/openshift-images
         state: link
         setype: virt_var_lib_t
-      when: kvm_pool_location  != "/var/lib/libvirt/openshift-images"
+      when: pool_location  != "/var/lib/libvirt/openshift-images"
 
-    - name: Repair SELinux contexts ( {{ kvm_pool_location }} )
+    - name: Repair SELinux contexts ( {{ pool_location }} )
       tags: install
       changed_when: false
       shell: |
-        /sbin/semanage fcontext -a -t virt_var_lib_t "{{ kvm_pool_location }}(/.*)?"
-        /sbin/restorecon -rv {{ kvm_pool_location }}
+        /sbin/semanage fcontext -a -t virt_var_lib_t "{{ pool_location }}(/.*)?"
+        /sbin/restorecon -rv {{ pool_location }}
 
 - name: Install NFS requirements
   when: nfs_storage == "true"

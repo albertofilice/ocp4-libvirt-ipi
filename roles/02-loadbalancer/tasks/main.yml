@@ -7,7 +7,7 @@
   become: true
   module_defaults:
     shell:
-      chdir: "{{ kvm_workdir }}"
+      chdir: "{{ workdir }}"
   block:
     - name: Install Load Balancer
       become: true
@@ -20,7 +20,7 @@
             state: present
 
         - name: Get Firewalld ZONE
-          shell: "IFADDR=$(nmcli con show '{{ kvm_interface }}' | grep ipv4.addresses | awk -F ':                         ' '{print $2}' | awk -F / '{print $1}') ; echo $IFADDR"
+          shell: "IFADDR=$(nmcli con show '{{ network_interface }}' | grep ipv4.addresses | awk -F ':                         ' '{print $2}' | awk -F / '{print $1}') ; echo $IFADDR"
           register: publicaddress
 
         - name: Remove the haproxy.conf if it's the default one
@@ -101,21 +101,21 @@
           ansible.builtin.lineinfile:
             path: /etc/haproxy/haproxy.cfg
             insertafter: '    default_backend default-openshift-api-server'
-            line: "    use_backend {{ cluster_name }}-openshift-api-server if { req.ssl_sni -m sub {{ cluster_name }}.{{ basedomain }} }"
+            line: "    use_backend {{ metadata.name }}-openshift-api-server if { req.ssl_sni -m sub {{ metadata.name }}.{{ basedomain }} }"
 
 
         - name: Create ACL in HAproxy frontend HTTPS
           ansible.builtin.lineinfile:
             path: /etc/haproxy/haproxy.cfg
             insertafter: '    default_backend default-ingress-securehttps'
-            line: "    use_backend {{ cluster_name }}-ingress-https if { req.ssl_sni -m sub {{ cluster_name }}.{{ basedomain }} }"
+            line: "    use_backend {{ metadata.name }}-ingress-https if { req.ssl_sni -m sub {{ metadata.name }}.{{ basedomain }} }"
 
 
         - name: Create ACL in HAproxy frontend HTTP
           ansible.builtin.lineinfile:
             path: /etc/haproxy/haproxy.cfg
             insertafter: '    default_backend default-ingress-http'
-            line: "    use_backend {{ cluster_name }}-ingress-http if { hdr_end(host) -i .{{ cluster_name }}.{{ basedomain }} }"
+            line: "    use_backend {{ metadata.name }}-ingress-http if { hdr_end(host) -i .{{ metadata.name }}.{{ basedomain }} }"
 
         - name: Create backends haproxy file
           template:
@@ -125,7 +125,7 @@
         - name: Remove HAPROXY backends config for this cluster
           blockinfile:
             path: /etc/haproxy/haproxy.cfg
-            marker: "######## {{ cluster_name }} {mark} ########"
+            marker: "######## {{ metadata.name }} {mark} ########"
             state: absent
 
         - name: Create haproxy file

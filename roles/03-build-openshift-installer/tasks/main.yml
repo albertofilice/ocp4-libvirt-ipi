@@ -4,11 +4,11 @@
   become: true
   module_defaults:
     shell:
-      chdir: "{{ kvm_workdir }}"
+      chdir: "{{ workdir }}"
   environment:
-    GOPATH: "{{ kvm_workdir }}/go"
-    GOCACHE: "{{ kvm_workdir }}/go-build"
-    HOME: "{{ kvm_workdir }}"
+    GOPATH: "{{ workdir }}/go"
+    GOCACHE: "{{ workdir }}/go-build"
+    HOME: "{{ workdir }}"
   block:
     - name: Create OpenShift artifacts directories
       file:
@@ -28,7 +28,7 @@
       git:
         repo: "{{ ocp_openshift_installer_repo }}"
         version: release-4.{{  ocp_release.split(".")[1] | lower }}
-        dest: "{{ kvm_workdir }}/go/src/github.com/openshift/installer"
+        dest: "{{ workdir }}/go/src/github.com/openshift/installer"
         clone: yes
         force: yes
 
@@ -46,40 +46,40 @@
         git checkout -b release-{{ ocp_release }} {{ installercommitid.stdout }}
       args:
         chdir:
-          "{{ kvm_workdir }}/go/src/github.com/openshift/installer"
+          "{{ workdir }}/go/src/github.com/openshift/installer"
 
     ## NOTE: We need to modify manifests because of https://github.com/openshift/installer/issues/1007 otherwise the console won't come up
     - name: Change local_only to solve issue 1007
       shell: |
-        sed -i "s/local_only = true/local_only = true\n    forwarders { \n        address = \"{{ kvm_libvirt_network_gw }}\"\n        domain = \"apps.\${var.cluster_domain}\" \n    }/g" {{ kvm_workdir }}/go/src/github.com/openshift/installer/data/data/libvirt/cluster/main.tf
+        sed -i "s/local_only = true/local_only = true\n    forwarders { \n        address = \"{{ kvm_libvirt_network_gw }}\"\n        domain = \"apps.\${var.cluster_domain}\" \n    }/g" {{ workdir }}/go/src/github.com/openshift/installer/data/data/libvirt/cluster/main.tf
 
     - name: Change timeouts to 180m
       shell: |
-        sed -i 's/apiTimeout := 20/apiTimeout := 180/g' {{ kvm_workdir }}/go/src/github.com/openshift/installer/cmd/openshift-install/create.go
-        sed -i 's/timeout := 40/timeout := 180/g' {{ kvm_workdir }}/go/src/github.com/openshift/installer/cmd/openshift-install/create.go
-        sed -i 's/timeout := 30/timeout := 180/g' {{ kvm_workdir }}/go/src/github.com/openshift/installer/cmd/openshift-install/create.go
-        sed -i 's/consoleRouteTimeout := 10/consoleRouteTimeout := 60/g' {{ kvm_workdir }}/go/src/github.com/openshift/installer/cmd/openshift-install/create.go
+        sed -i 's/apiTimeout := 20/apiTimeout := 180/g' {{ workdir }}/go/src/github.com/openshift/installer/cmd/openshift-install/create.go
+        sed -i 's/timeout := 40/timeout := 180/g' {{ workdir }}/go/src/github.com/openshift/installer/cmd/openshift-install/create.go
+        sed -i 's/timeout := 30/timeout := 180/g' {{ workdir }}/go/src/github.com/openshift/installer/cmd/openshift-install/create.go
+        sed -i 's/consoleRouteTimeout := 10/consoleRouteTimeout := 60/g' {{ workdir }}/go/src/github.com/openshift/installer/cmd/openshift-install/create.go
         
 
     - name: Change Default Graphics for KVM
       shell: |
-        sed -i 's/spice/vnc/g' {{ kvm_workdir }}/go/src/github.com/openshift/installer/terraform/providers/libvirt/vendor/github.com/dmacvicar/terraform-provider-libvirt/libvirt/resource_libvirt_domain.go
+        sed -i 's/spice/vnc/g' {{ workdir }}/go/src/github.com/openshift/installer/terraform/providers/libvirt/vendor/github.com/dmacvicar/terraform-provider-libvirt/libvirt/resource_libvirt_domain.go
 
     - name: Build the Openshift installer with libvirt support
       shell: |
-        cd {{ kvm_workdir }}/go/src/github.com/openshift/installer/
+        cd {{ workdir }}/go/src/github.com/openshift/installer/
         TAGS=libvirt hack/build.sh
 
 - name: Prepare OpenShift installation
   tags: install
   become: true
   environment:
-    GOPATH: "{{ kvm_workdir }}/go"
-    GOCACHE: "{{ kvm_workdir }}/go-build"
-    HOME: "{{ kvm_workdir }}"
+    GOPATH: "{{ workdir }}/go"
+    GOCACHE: "{{ workdir }}/go-build"
+    HOME: "{{ workdir }}"
   module_defaults:
     shell:
-      chdir: "{{ kvm_workdir }}"
+      chdir: "{{ workdir }}"
   block:
     # Restart to avoid problems enabling bridges
     - name: restart libvirt
@@ -103,7 +103,7 @@
         - client
 
     - name: Download Openshift installer
-      shell: "cp {{ kvm_workdir }}/go/src/github.com/openshift/installer/bin/openshift-install {{ ocp_install_path }}/artifacts/openshift-installer-{{ ocp_release }}/"
+      shell: "cp {{ workdir }}/go/src/github.com/openshift/installer/bin/openshift-install {{ ocp_install_path }}/artifacts/openshift-installer-{{ ocp_release }}/"
 
     - name: Download Openshift client
       shell: |
@@ -138,9 +138,9 @@
 - name: Install OpenShift
   become: true
   environment:
-    GOPATH: "{{ kvm_workdir }}/go"
-    GOCACHE: "{{ kvm_workdir }}/go-build"
-    HOME: "{{ kvm_workdir }}"
+    GOPATH: "{{ workdir }}/go"
+    GOCACHE: "{{ workdir }}/go-build"
+    HOME: "{{ workdir }}"
   module_defaults:
     shell:
       chdir: "{{ ocp_install_path }}/artifacts/openshift-installer-{{ ocp_release }}"

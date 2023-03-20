@@ -3,21 +3,21 @@
   hosts: localhost
 
   vars:
-    kvm_interface: "eth0"
-    kvm_workdir: "{{ ansible_env.HOME }}"
-    kvm_nestedvirtualization: true
-    kvm_pool_location: "/var/lib/libvirt/openshift-images"
-    nfs_export_path: "var/lib/libvirt/openshift-nfs"    
-    cluster_name: ocp4 #Cluster Name
-    basedomain: <Domain>  
-    nfs_storage: true
+    network_interface: "eth0"
+    workdir: "{{ ansible_env.HOME }}"
+    nestedvirtualization: true
+    pool_location: "/var/lib/libvirt/openshift-images"
+    nfs_export_path: "/var/lib/libvirt/openshift-nfs"    
+    metadata.name: ocp4
+    baseDomain: filice.eu  
+    nfs_storage: "true"
     ocp_install_file_path: "install-config.yml"
-    ocp_install_path: "{{ kvm_workdir }}/ocp"
+    ocp_install_path: "{{ workdir }}/ocp"
     ocp_mirror: "https://mirror.openshift.com/pub/openshift-v4/clients/ocp"
     ocp_openshift_installer_repo: "https://github.com/openshift/installer"  
     ocp_install_install_release_image_registry: "quay.io/openshift-release-dev/ocp-release"
     kvm_libvirt_network_gw: "192.168.122.1"  
-    ocp_release: "4.12.6"
+    ocp_release: "4.11.20"
     ocp_master_memory: 24
     ocp_master_cpu: 8
     ocp_master_disk: 150
@@ -27,14 +27,15 @@
     ocp_api_vip: "192.168.126.11"
     ocp_apps_vip: "192.168.126.51"
     ocp_cluster_net_gw: "192.168.126.1"
-    clusteradmin: <Cluster Admin UserName>
-    clusterpassword: <Cluster Admin Password>
-    letsencrypt_account_email: name@example.com
-    #cloudflare_account_email: john@example.com
-    #cloudflare_account_api_token: <Global Api Tocken>
-    
+    clusteradmin: afilice
+    clusterpassword: D@nceofde@th43!
+    letsencrypt_account_email: albertofilice@gmail.com
+    cloudflare_account_email: albertofilice@gmail.com
+    cloudflare_account_api_token: 506142b9be0c7259f4e97acc552b8bc02a02d     
+
   roles:
-    - {role: '01-prepare-host'}
-    - {role: '02-loadbalancer'}
-    - {role: '03-build-openshift-installer'}
-    - {role: '04-cluster-install'}
+    #- {role: '01-prepare-host'}
+    #- {role: '02-loadbalancer'}
+    #- {role: '03-build-openshift-installer'}
+    #- {role: '04-cluster-install'}
+    - {role: 'day2'}

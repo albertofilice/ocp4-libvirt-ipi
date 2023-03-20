@@ -2,7 +2,7 @@
 
 - name: Create certificates dir
   ansible.builtin.file:
-    path: "{{ ocp_install_path }}/install/certificate/{{ cluster_name }}.{{ basedomain }}"
+    path: "{{ ocp_install_path }}/install/certificate/{{ metadata.name }}.{{ basedomain }}"
     state: directory
     mode: 0755
 
@@ -17,24 +17,24 @@
     url: https://letsencrypt.org/certs/isrgrootx1.pem.txt
     dest: "{{ ocp_install_path }}/install/certificate/isrgrootx1.pem"
 
-- name: Create {{ cluster_name }}.{{ basedomain }}.key
+- name: Create {{ metadata.name }}.{{ basedomain }}.key
   community.crypto.openssl_privatekey:
-    path: "{{ ocp_install_path }}/install/certificate/{{ cluster_name }}.{{ basedomain }}/cert.key"
+    path: "{{ ocp_install_path }}/install/certificate/{{ metadata.name }}.{{ basedomain }}/cert.key"
     type: RSA
     size: 4096
 
 - name: Generate an OpenSSL Certificate Signing Request with subjectAltName extension
   community.crypto.openssl_csr:
-    path: "{{ ocp_install_path }}/install/certificate/{{ cluster_name }}.{{ basedomain }}/cert.csr"
-    privatekey_path: "{{ ocp_install_path }}/install/certificate/{{ cluster_name }}.{{ basedomain }}/cert.key"
-    subject_alt_name: "DNS:*.apps.{{ cluster_name }}.{{ basedomain }},DNS:api.{{ cluster_name }}.{{ basedomain }}"
+    path: "{{ ocp_install_path }}/install/certificate/{{ metadata.name }}.{{ basedomain }}/cert.csr"
+    privatekey_path: "{{ ocp_install_path }}/install/certificate/{{ metadata.name }}.{{ basedomain }}/cert.key"
+    subject_alt_name: "DNS:*.apps.{{ metadata.name }}.{{ basedomain }},DNS:api.{{ metadata.name }}.{{ basedomain }}"
 
-- name: Create a challenge for {{ cluster_name }}.{{ basedomain }} using a account key file.
+- name: Create a challenge for {{ metadata.name }}.{{ basedomain }} using a account key file.
   community.crypto.acme_certificate:
     account_key_src: "{{ ocp_install_path }}/install/certificate/account.key"
     account_email: "{{ letsencrypt_account_email }}"
-    src: "{{ ocp_install_path }}/install/certificate/{{ cluster_name }}.{{ basedomain }}/cert.csr"
-    cert: "{{ ocp_install_path }}/install/certificate/{{ cluster_name }}.{{ basedomain }}/cert.crt"
+    src: "{{ ocp_install_path }}/install/certificate/{{ metadata.name }}.{{ basedomain }}/cert.csr"
+    cert: "{{ ocp_install_path }}/install/certificate/{{ metadata.name }}.{{ basedomain }}/cert.crt"
     challenge: dns-01
     acme_directory: "https://acme-v02.api.letsencrypt.org/directory"
     acme_version: 2
@@ -83,10 +83,10 @@
   community.crypto.acme_certificate:  # noqa no-handler
     account_key_src: "{{ ocp_install_path }}/install/certificate/account.key"
     account_email: "{{ letsencrypt_account_email }}"
-    src: "{{ ocp_install_path }}/install/certificate/{{ cluster_name }}.{{ basedomain }}/cert.csr"
-    cert: "{{ ocp_install_path }}/install/certificate/{{ cluster_name }}.{{ basedomain }}/cert.crt"
-    fullchain: "{{ ocp_install_path }}/install/certificate/{{ cluster_name }}.{{ basedomain }}/fullchain.crt"
-    chain: "{{ ocp_install_path }}/install/certificate/{{ cluster_name }}.{{ basedomain }}/intermediate.crt"
+    src: "{{ ocp_install_path }}/install/certificate/{{ metadata.name }}.{{ basedomain }}/cert.csr"
+    cert: "{{ ocp_install_path }}/install/certificate/{{ metadata.name }}.{{ basedomain }}/cert.crt"
+    fullchain: "{{ ocp_install_path }}/install/certificate/{{ metadata.name }}.{{ basedomain }}/fullchain.crt"
+    chain: "{{ ocp_install_path }}/install/certificate/{{ metadata.name }}.{{ basedomain }}/intermediate.crt"
     challenge: dns-01
     acme_version: 2
     acme_directory: "https://acme-v02.api.letsencrypt.org/directory"
@@ -110,7 +110,7 @@
   when: (cloudflare_account_email is defined) and sample_com_challenge is changed
 
 - name: concat root ca and intermediate
-  ansible.builtin.shell: "cat {{ ocp_install_path }}/install/certificate/isrgrootx1.pem {{ ocp_install_path }}/install/certificate/{{ cluster_name }}.{{ basedomain }}/intermediate.crt >> {{ ocp_install_path }}/install/certificate/{{ cluster_name }}.{{ basedomain }}/ca-bundle.pem"   # noqa line-length
+  ansible.builtin.shell: "cat {{ ocp_install_path }}/install/certificate/isrgrootx1.pem {{ ocp_install_path }}/install/certificate/{{ metadata.name }}.{{ basedomain }}/intermediate.crt >> {{ ocp_install_path }}/install/certificate/{{ metadata.name }}.{{ basedomain }}/ca-bundle.pem"   # noqa line-length
   args:
-    creates: "{{ ocp_install_path }}/install/certificate/{{ cluster_name }}.{{ basedomain }}/ca-bundle.pem"  
+    creates: "{{ ocp_install_path }}/install/certificate/{{ metadata.name }}.{{ basedomain }}/ca-bundle.pem"  
 
