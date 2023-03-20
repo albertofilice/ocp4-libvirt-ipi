@@ -7,9 +7,7 @@
     workdir: "{{ ansible_env.HOME }}"
     nestedvirtualization: true
     pool_location: "/var/lib/libvirt/openshift-images"
-    nfs_export_path: "/var/lib/libvirt/openshift-nfs"    
-    metadata.name: ocp4
-    baseDomain: <Domain>
+    nfs_export_path: "/var/lib/libvirt/openshift-nfs"
     nfs_storage: "true"
     ocp_install_file_path: "install-config.yml"
     ocp_install_path: "{{ workdir }}/ocp"
