@@ -1,0 +1,80 @@
+---
+# tasks file for day2
+
+- include_vars: "{{ ocp_install_file_path }}"
+
+
+- name: install pre-requisites
+  pip:
+    name:
+      - openshift
+      - pyyaml
+      - kubernetes 
+
+- name: Create runtime directory
+  tags: htpasswd_idp
+  file:
+    path: "{{ ocp_install_path }}/post-install/htpasswd-idp"
+    state: directory
+
+- name: Create htpasswd IDP Custom Resource OAuth from template
+  tags: htpasswd_idp
+  template:
+    src: "htpasswd-config.j2"
+    dest: "{{ ocp_install_path }}/post-install/htpasswd-idp/htpasswd-config.yaml"
+    mode: 0644
+
+- name: Create ClusterRoleBinding for user
+  tags: htpasswd_idp
+  template:
+    src: "cluster-admin-htpasswd.j2"
+    dest: "{{ ocp_install_path }}/post-install/htpasswd-idp/cluster-admin-htpasswd.yaml"
+    mode: 0644
+
+- name: Create Htpasswd file
+  tags: htpasswd_idp
+  shell: |
+    yum install -y httpd-tools
+    htpasswd -c -B -b {{ ocp_install_path }}/post-install/users.htpasswd {{ clusteradmin }} {{ clusterpassword }}
+  register: htpasswd_idp
+
+- name: Encode certificate
+  tags: htpasswd_idp
+  shell: "cat {{ ocp_install_path }}/post-install/users.htpasswd | base64 -w0"
+  register: htpasswd_idp
+
+- name: Create htpass-secret secret
+  tags: htpasswd_idp
+  k8s:
+    apply: true
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: htpass-secret
+        namespace: openshift-config
+      type: Opaque
+      data:
+        htpasswd: "{{ htpasswd_idp.stdout }}"
+  
+- name: Merge htpasswd Identity Provider in OAuth CR
+  tags: htpasswd_idp
+  k8s:
+    merge_type:
+      - strategic-merge
+      - merge
+    namespace: openshift-config
+    src: "{{ ocp_install_path }}/post-install/htpasswd-idp/htpasswd-config.yaml"
+
+- name: Add cluster-admin role
+  tags: htpasswd_idp
+  k8s:
+    apply: True
+    src: "{{ ocp_install_path }}/post-install/htpasswd-idp/cluster-admin-htpasswd.yaml"
+
+- name: Run Letsencrypt
+  ansible.builtin.include_tasks: "letsencrypt.yml"
+
+- name: Run Certificate Install
+  ansible.builtin.include_tasks: "certificate-install.yml"
+
