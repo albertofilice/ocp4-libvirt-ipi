@@ -26,8 +26,8 @@ All Variable for playbook can be found in main.yml and install-config.yml
 | nfs_export_path |   Storage nfs path |  /var/lib/libvirt/openshift-nfs |
 | nfs_storage | Enable or Disable NFS |  true |
 | ocp_install_file_path | Path of install-config.yml |  install-config.yml |
-| ocp_install_path |        |  {{ workdir }}/ocp |
-| ocp_mirror |    Default user HOME/ocp    |  https://mirror.openshift.com/pub/openshift-v4/clients/ocp |
+| ocp_install_path |   Default user HOME/ocp         |  {{ workdir }}/ocp |
+| ocp_mirror |    |  https://mirror.openshift.com/pub/openshift-v4/clients/ocp |
 | ocp_openshift_installer_repo |        |  https://github.com/openshift/installer |
 | ocp_install_install_release_image_registry |    for okd use https://quay.io/openshift/okd    |  quay.io/openshift-release-dev/ocp-release |
 | ocp_release |    for okd use 4.11.0-0.okd-2023-01-14-152430	   |  4.11.20 |
