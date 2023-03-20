@@ -30,4 +30,4 @@ ansible-playbook main.yml
 License
 -------
 
-BSD
+MIT
