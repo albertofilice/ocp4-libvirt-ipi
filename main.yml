@@ -4,6 +4,7 @@
 
   vars:
     network_interface: "eth0"
+    libvirt_api_endpoint: "192.168.122.1"
     workdir: "{{ ansible_env.HOME }}"
     nestedvirtualization: true
     pool_location: "/var/lib/libvirt/openshift-images"
@@ -14,7 +15,6 @@
     ocp_mirror: "https://mirror.openshift.com/pub/openshift-v4/clients/ocp"
     ocp_openshift_installer_repo: "https://github.com/openshift/installer"  
     ocp_install_install_release_image_registry: "quay.io/openshift-release-dev/ocp-release"
-    kvm_libvirt_network_gw: "192.168.122.1"  
     ocp_release: "4.11.20"
     ocp_master_memory: 24
     ocp_master_cpu: 8
