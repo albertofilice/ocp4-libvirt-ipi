@@ -33,8 +33,8 @@
     cloudflare_account_api_token: <CHANGEME cloudflare_account_api_token>
 
   roles:
-    - {role: '01-prepare-host'}
-    - {role: '02-loadbalancer'}
-    - {role: '03-build-openshift-installer'}
-    - {role: '04-cluster-install'}
-    - {role: 'day2'}
+    - {role: '01-prepare-host', tags: 'prereq'}
+    - {role: '02-loadbalancer', tags: 'haproxy'}
+    - {role: '03-build-openshift-installer', tags: build_installer}
+    - {role: '04-cluster-install', tags: cluster_install}
+    - {role: 'day2', tags: day2}
