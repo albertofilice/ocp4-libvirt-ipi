@@ -17,6 +17,19 @@
       - unzip
     state: present
 
+- name: Clone qemu-spice-el9 for fix spice error
+  git:
+    repo: "https://github.com/ladar/qemu-spice-el9.git"
+    dest: "{{ workdir }}/qemu-spice-el9"
+    clone: yes
+    force: yes
+
+- name: Install Spice Supports
+  shell: |
+    cd {{ workdir }}/qemu-spice-el9
+    chmod +x INSTALL.sh
+    ./INSTALL.sh
+
 - name: Upgrade all packages
   ansible.builtin.package:
     name: '*'
