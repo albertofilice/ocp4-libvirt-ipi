@@ -25,6 +25,7 @@
     ocp_api_vip: "192.168.126.11"
     ocp_apps_vip: "192.168.126.51"
     ocp_cluster_net_gw: "192.168.126.1"
+    masters_schedulable: false
     clusteradmin: <CHANGEME clusteradmin>
     clusterpassword: <CHANGEME clusterpassword> 
     letsencrypt_account_email: <CHANGEME letsencrypt_account_email>
