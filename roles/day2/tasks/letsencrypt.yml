@@ -56,14 +56,14 @@
 - name: Create DNS record at CloudFlare
   delegate_to: localhost
   community.general.net_tools.cloudflare_dns:
-    zone: "{{ le_cloudflare_zone }}"
+    zone: "{{ basedomain }}"
     record: "{{ item.0.key }}"
     # 1 for automatic
     ttl: 1
     type: TXT
     value: "{{ item.1 }}"
-    account_email: "{{ le_cloudflare_account_email }}"
-    account_api_token: "{{ le_cloudflare_account_api_token }}"
+    account_email: "{{ cloudflare_account_email }}"
+    account_api_token: "{{ cloudflare_account_api_token }}"
   register: record
   loop: "{{ challenge_data_dns | default({}) | dict2items | subelements('value') }}"
   when: (cloudflare_account_email is defined) and sample_com_challenge is changed    
@@ -89,7 +89,7 @@
     chain: "{{ ocp_install_path }}/install/certificate/{{ cluster_name }}.{{ basedomain }}/intermediate.crt"
     challenge: dns-01
     acme_version: 2
-    acme_directory: "{{ le_acme_directory }}"
+    acme_directory: "https://acme-v02.api.letsencrypt.org/directory"
     remaining_days: 60
     data: "{{ sample_com_challenge }}"
   when: sample_com_challenge is changed
@@ -97,14 +97,14 @@
 - name: Delete DNS record at CloudFlare
   delegate_to: localhost
   community.general.net_tools.cloudflare_dns:
-    zone: "{{ le_cloudflare_zone }}"
+    zone: "{{ basedomain }}"
     record: "{{ item.0.key }}"
     # 1 for automatic
     ttl: 1
     type: TXT
     value: "{{ item.1 }}"
-    account_email: "{{ le_cloudflare_account_email }}"
-    account_api_token: "{{ le_cloudflare_account_api_token }}"
+    account_email: "{{ cloudflare_account_email }}"
+    account_api_token: "{{ cloudflare_account_api_token }}"
     state: absent
   loop: "{{ challenge_data_dns | default({}) | dict2items | subelements('value') }}"
   when: (cloudflare_account_email is defined) and sample_com_challenge is changed

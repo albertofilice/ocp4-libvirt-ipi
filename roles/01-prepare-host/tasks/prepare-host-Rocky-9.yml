@@ -14,6 +14,7 @@
       - "@virtualization-platform"
       - "@virtualization-tools"
       - python3-lxml
+      - python3-pip
       - firewalld
       - gcc-c++ 
       - libvirt-devel 
