@@ -1,0 +1,5 @@
+- name: Run Letsencrypt
+  ansible.builtin.include_tasks: "letsencrypt.yml"
+
+- name: Run Certificate Install
+  ansible.builtin.include_tasks: "certificate-install.yml"

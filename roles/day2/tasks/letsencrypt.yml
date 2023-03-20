@@ -1,0 +1,116 @@
+- include_vars: "{{ ocp_install_file_path }}"
+
+- name: Create certificates dir
+  ansible.builtin.file:
+    path: "{{ ocp_install_path }}/install/certificate/{{ cluster_name }}.{{ basedomain }}"
+    state: directory
+    mode: 0755
+
+- name: Create account-key
+  community.crypto.openssl_privatekey:
+    path: "{{ ocp_install_path }}/install/certificate/account.key"
+    type: RSA
+    size: 4096
+
+- name: Fetch letsencrypt root ca
+  ansible.builtin.get_url:
+    url: https://letsencrypt.org/certs/isrgrootx1.pem.txt
+    dest: "{{ ocp_install_path }}/install/certificate/isrgrootx1.pem"
+
+- name: Create {{ cluster_name }}.{{ basedomain }}.key
+  community.crypto.openssl_privatekey:
+    path: "{{ ocp_install_path }}/install/certificate/{{ cluster_name }}.{{ basedomain }}/cert.key"
+    type: RSA
+    size: 4096
+
+- name: Generate an OpenSSL Certificate Signing Request with subjectAltName extension
+  community.crypto.openssl_csr:
+    path: "{{ ocp_install_path }}/install/certificate/{{ cluster_name }}.{{ basedomain }}/cert.csr"
+    privatekey_path: "{{ ocp_install_path }}/install/certificate/{{ cluster_name }}.{{ basedomain }}/cert.key"
+    subject_alt_name: "DNS:*.apps.{{ cluster_name }}.{{ basedomain }},DNS:api.{{ cluster_name }}.{{ basedomain }}"
+
+- name: Create a challenge for {{ cluster_name }}.{{ basedomain }} using a account key file.
+  community.crypto.acme_certificate:
+    account_key_src: "{{ ocp_install_path }}/install/certificate/account.key"
+    account_email: "{{ letsencrypt_account_email }}"
+    src: "{{ ocp_install_path }}/install/certificate/{{ cluster_name }}.{{ basedomain }}/cert.csr"
+    cert: "{{ ocp_install_path }}/install/certificate/{{ cluster_name }}.{{ basedomain }}/cert.crt"
+    challenge: dns-01
+    acme_directory: "https://acme-v02.api.letsencrypt.org/directory"
+    acme_version: 2
+    # Renew if the certificate is at least 30 days old
+    remaining_days: 60
+    terms_agreed: yes
+  register: sample_com_challenge
+
+- name: Debug var only with -vv
+  ansible.builtin.debug:
+    var: sample_com_challenge
+    verbosity: 2
+
+- name: Set challenge_data_dns
+  ansible.builtin.set_fact:  # noqa no-handler
+    challenge_data_dns: "{{ sample_com_challenge.challenge_data_dns }}"
+  when: sample_com_challenge is changed
+
+- name: Create DNS record at CloudFlare
+  delegate_to: localhost
+  community.general.net_tools.cloudflare_dns:
+    zone: "{{ le_cloudflare_zone }}"
+    record: "{{ item.0.key }}"
+    # 1 for automatic
+    ttl: 1
+    type: TXT
+    value: "{{ item.1 }}"
+    account_email: "{{ le_cloudflare_account_email }}"
+    account_api_token: "{{ le_cloudflare_account_api_token }}"
+  register: record
+  loop: "{{ challenge_data_dns | default({}) | dict2items | subelements('value') }}"
+  when: (cloudflare_account_email is defined) and sample_com_challenge is changed    
+
+- name: DNS record info
+  ansible.builtin.debug:    # noqa no-handler
+    msg: "{{ item.0.key }} TXT {{ item.1 }}"
+  loop: "{{ challenge_data_dns | default({}) | dict2items | subelements('value') }}"
+  when: sample_com_challenge is changed
+
+- name: Wait for DNS changes
+  ansible.builtin.pause:   # noqa no-handler
+    seconds: 40
+  when: sample_com_challenge is changed
+
+- name: Let the challenge be validated and retrieve the cert and intermediate certificate
+  community.crypto.acme_certificate:  # noqa no-handler
+    account_key_src: "{{ ocp_install_path }}/install/certificate/account.key"
+    account_email: "{{ letsencrypt_account_email }}"
+    src: "{{ ocp_install_path }}/install/certificate/{{ cluster_name }}.{{ basedomain }}/cert.csr"
+    cert: "{{ ocp_install_path }}/install/certificate/{{ cluster_name }}.{{ basedomain }}/cert.crt"
+    fullchain: "{{ ocp_install_path }}/install/certificate/{{ cluster_name }}.{{ basedomain }}/fullchain.crt"
+    chain: "{{ ocp_install_path }}/install/certificate/{{ cluster_name }}.{{ basedomain }}/intermediate.crt"
+    challenge: dns-01
+    acme_version: 2
+    acme_directory: "{{ le_acme_directory }}"
+    remaining_days: 60
+    data: "{{ sample_com_challenge }}"
+  when: sample_com_challenge is changed
+
+- name: Delete DNS record at CloudFlare
+  delegate_to: localhost
+  community.general.net_tools.cloudflare_dns:
+    zone: "{{ le_cloudflare_zone }}"
+    record: "{{ item.0.key }}"
+    # 1 for automatic
+    ttl: 1
+    type: TXT
+    value: "{{ item.1 }}"
+    account_email: "{{ le_cloudflare_account_email }}"
+    account_api_token: "{{ le_cloudflare_account_api_token }}"
+    state: absent
+  loop: "{{ challenge_data_dns | default({}) | dict2items | subelements('value') }}"
+  when: (cloudflare_account_email is defined) and sample_com_challenge is changed
+
+- name: concat root ca and intermediate
+  ansible.builtin.shell: "cat {{ ocp_install_path }}/install/certificate/isrgrootx1.pem {{ ocp_install_path }}/install/certificate/{{ cluster_name }}.{{ basedomain }}/intermediate.crt >> {{ ocp_install_path }}/install/certificate/{{ cluster_name }}.{{ basedomain }}/ca-bundle.pem"   # noqa line-length
+  args:
+    creates: "{{ ocp_install_path }}/install/certificate/{{ cluster_name }}.{{ basedomain }}/ca-bundle.pem"  
+

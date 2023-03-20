@@ -1,0 +1,54 @@
+---
+- include_vars: "{{ ocp_install_file_path }}"
+
+- name: Check certificates exist
+  ansible.builtin.stat:
+    path: "{{ ocp_install_path }}/install/certificate/{{ cluster_name }}.{{ basedomain }}/fullchain.crt"
+  register: crt
+- name: Check ssl key exist
+  ansible.builtin.stat:
+    path: "{{ ocp_install_path }}/install/certificate/{{ cluster_name }}.{{ basedomain }}/cert.key"
+  register: key
+
+- name: Install certificates
+  block:
+
+    - name: Slurp certficate_fullchain
+      ansible.builtin.slurp:
+        src: "{{ ocp_install_path }}/install/certificate/{{ cluster_name }}.{{ basedomain }}/fullchain.crt"
+      register: tls_crt
+
+    - name: Slurp certficate_key
+      ansible.builtin.slurp:
+        src: "{{ ocp_install_path }}/install/certificate/{{ cluster_name }}.{{ basedomain }}/cert.key"
+      register: tls_key
+
+    - name: Create secret with certificates for openshift-ingress
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          data:
+            tls.crt: "{{ tls_crt['content'] }}"
+            tls.key: "{{ tls_key['content'] }}"
+          metadata:
+            name: letsencrypt-router-certs
+            namespace: openshift-ingress
+          type: kubernetes.io/tls
+
+    - name: Patch ingresscontroller/default
+      kubernetes.core.k8s:
+        state: present
+        merge_type: merge
+        definition:
+          apiVersion: operator.openshift.io/v1
+          kind: IngressController
+          metadata:
+            name: default
+            namespace: openshift-ingress-operator
+          spec:
+            defaultCertificate:
+              name: letsencrypt-router-certs
+
+  when: crt.stat.exists and key.stat.exists

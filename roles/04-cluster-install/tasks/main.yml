@@ -7,6 +7,38 @@
   shell: |
     curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
+- name: Create Cloudflare DNS records
+  cloudflare_dns:
+    zone: "{{ basedomain }}"
+    record: "{{ item }}.{{ cluster_name }}.{{ basedomain }}"
+    ttl: 1
+    type: A
+    value: "{{ public_ip }}"
+    account_email: "{{ cloudflare_account_email }}"
+    account_api_token: "{{ cloudflare_account_api_token }}"
+  with_items:
+    - api
+    - '*.apps'
+  tags:
+    - public_dns
+  when: (cloudflare_account_email is defined)
+
+- name: Create IPv6 Cloudflare DNS records
+  cloudflare_dns:
+    zone: "{{ basedomain }}"
+    record: "{{ item }}.{{ cluster_name }}.{{ basedomain }}"
+    ttl: 1
+    type: AAAA
+    value: "{{ public_ipv6 }}"
+    account_email: "{{ cloudflare_account_email }}"
+    account_api_token: "{{ cloudflare_account_api_token }}"
+  with_items:
+    - api
+    - '*.apps'
+  tags:
+    - public_dns
+  when: (cloudflare_account_email is defined)
+
 - name: Compile OpenShift installer (libvirt is in development)
   become: true
   environment:
@@ -18,12 +50,12 @@
       debug:
         msg: "The next task - OpenShift Install - It might take some time to produce any output, please be patient. Thank you."
 
-#    - name: OpenShift install
-#      shell: |
-#        export OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE={{ ocp_install_install_release_image_registry }}:{{ ocp_release }}-x86_64
-#        export GOPATH={{ kvm_workdir }}/go
-#        export GOCACHE={{ kvm_workdir }}/go-build
-#        {{ ocp_install_path }}/artifacts/openshift-installer-{{ ocp_release }}/openshift-install create cluster --dir {{ ocp_install_path }}/install/        
+    - name: OpenShift install
+      shell: |
+        export OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE={{ ocp_install_install_release_image_registry }}:{{ ocp_release }}-x86_64
+        export GOPATH={{ kvm_workdir }}/go
+        export GOCACHE={{ kvm_workdir }}/go-build
+        {{ ocp_install_path }}/artifacts/openshift-installer-{{ ocp_release }}/openshift-install create cluster --dir {{ ocp_install_path }}/install/        
 
 - name: OpenShift Post-Install
   become: true
