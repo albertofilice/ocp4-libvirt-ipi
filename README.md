@@ -3,6 +3,13 @@ Ocp4 Libvirt IPI
 
 An ansible playbook for install Openshift using Libvirt IPI 
 
+Disclaimer
+=========
+
+This environment has been created for the sole purpose of providing an easy to deploy and consume Red Hat OpenShift Container Platform 4 environment.
+
+Use it at your own pleasure and risk!
+
 Requirements
 ------------
 
