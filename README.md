@@ -8,10 +8,29 @@ Use it at your own pleasure and risk!
 Ocp4 Libvirt IPI
 =========
 
-An ansible playbook for install Openshift using Libvirt IPI 
+An ansible playbook for install Openshift using Libvirt IPI.
 
 ![ocp4-ipi-libvirt](https://user-images.githubusercontent.com/35273403/226682889-f1b1eb20-e4c5-4f9c-b559-a93cc17fa032.png)
 
+I wrote this playbook to quickly and easily install development environments, I used it on hetzner and contabo with dedicated servers mainly on rocky linux operating system, but can also be used on NUC and Homelab.
+
+## Advice
+
+- I highly recommend servers with ssd disks to avoid etcd slowness problems and api response.
+- I configured my server with two IPV4 and 2 IPV6 addresses. One I use for ssh, management and api access, the other for web access to the console and applications. I configured both ip addresses on the same interface for convenience and managed the rules via firewalld, below is an example:
+
+```bash
+
+firewall-cmd --zone=public --add-rich-rule='rule family=ipv4 destination address=<PUBLIC IP>/24 service name=ssh reject' --permanent  
+firewall-cmd --zone=public --add-rich-rule='rule family=ipv4 destination address=<PUBLIC IP>/24 service name=cockpit reject' --permanent  
+firewall-cmd --zone=public --add-rich-rule='rule family=ipv4 destination address=<MANAGEMENT IP>/24 service name=http reject' --permanent  
+firewall-cmd --zone=public --add-rich-rule='rule family=ipv4 destination address=<MANAGEMENT IP>/24 service name=https reject' --permanent  
+firewall-cmd --zone=public --add-rich-rule='rule family=ipv4 destination address=<PUBLIC IP>/24 port port=9090 protocol=tcp  reject' --permanent
+firewall-cmd --zone=public --add-rich-rule='rule family=ipv4 destination address=<PUBLIC IP>/24 port port=6443 protocol=tcp  reject' --permanent
+firewall-cmd --zone=public --add-rich-rule='rule family=ipv4 destination address=<MANAGEMENT IP>/24 port port=80 protocol=tcp  reject' --permanent
+firewall-cmd --zone=public --add-rich-rule='rule family=ipv4 destination address=<MANAGEMENT IP>/24 port port=443 protocol=tcp  reject' --permanent
+
+```
 
 Cluster Options
 =========
