@@ -64,29 +64,10 @@ This playbook automates the steps described [here](https://github.com/openshift/
 
 In particular:
 
-- nestedvirtualization useful for example for installing openshift cnv
+- [nestedvirtualization](#enable-nested-virtualization-at-host) useful for example for installing openshift cnv
 - nfs with autoprovisioner [Link](https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner/blob/master/README.md)
 - VM Sizing as Memory, CPU and Disk
 - Cloudflare Support and Letsencrypt for certificate
-
-
-Enable nested virtualization at host
-------------
-
-1. Check CPU Information
-
-```bash
-cat /proc/cpuinfo | grep "vendor_id" | head -n 1
-```
-
-2. edit `/etc/modprobe.d/kvm.conf`
-
-```bash
-options kvm_intel nested=1
-# or 
-options kvm_amd nested=1
-```
-Reboot your host.
 
 Requirements
 ------------
@@ -142,6 +123,24 @@ cd ocp4-libvirt-ipi
 #Change install-config.yml and main.yml variable.
 ansible-playbook main.yml
 ```
+
+Enable nested virtualization at host
+------------
+
+1. Check CPU Information
+
+```bash
+cat /proc/cpuinfo | grep "vendor_id" | head -n 1
+```
+
+2. edit `/etc/modprobe.d/kvm.conf`
+
+```bash
+options kvm_intel nested=1
+# or 
+options kvm_amd nested=1
+```
+Reboot your host.
 
 OKD
 ----------------
