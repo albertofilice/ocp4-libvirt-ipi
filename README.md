@@ -69,6 +69,25 @@ In particular:
 - VM Sizing as Memory, CPU and Disk
 - Cloudflare Support and Letsencrypt for certificate
 
+
+Enable nested virtualization at host
+------------
+
+1. Check CPU Information
+
+```bash
+cat /proc/cpuinfo | grep "vendor_id" | head -n 1
+```
+
+2. edit `/etc/modprobe.d/kvm.conf`
+
+```bash
+options kvm_intel nested=1
+# or 
+options kvm_amd nested=1
+```
+Reboot your host.
+
 Requirements
 ------------
 
