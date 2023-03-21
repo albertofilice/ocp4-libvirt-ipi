@@ -1,14 +1,54 @@
-Ocp4 Libvirt IPI
-=========
-
-An ansible playbook for install Openshift using Libvirt IPI 
-
 Disclaimer
 =========
 
 This environment has been created for the sole purpose of providing an easy to deploy and consume Red Hat OpenShift Container Platform 4 environment.
 
 Use it at your own pleasure and risk!
+
+Ocp4 Libvirt IPI
+=========
+
+An ansible playbook for install Openshift using Libvirt IPI 
+
+![ocp4-ipi-libvirt](https://user-images.githubusercontent.com/35273403/226682889-f1b1eb20-e4c5-4f9c-b559-a93cc17fa032.png)
+
+
+Cluster Options
+=========
+
+You can install different types of clusters, for example:
+
+- SNO (Single Node OpenShift, just a Control Plane!).
+- Three-node cluster (3 Control Plane).
+
+Is it possible to deploy zero compute machines in a bare metal cluster that consists of three control plane machines only, with flag
+```yaml
+masters_schedulable: true
+```
+- Normal Provisioning (3 Control Plane, N Compute).
+
+In this case it is always better not to have schedulable control planes.
+
+Libvirt How to
+------------
+IPI support for the libvirt platform is not yet supported, therefore only the following option is available in the install-config.yaml when using libvirt:
+
+```yaml
+platform:
+  libvirt:
+    URI: qemu+tcp://192.168.122.1/system
+    network:
+      if: tt0
+```
+
+This playbook automates the steps described [here](https://github.com/openshift/installer/blob/master/docs/dev/libvirt/README.md) and implements various customizations to make the cluster usable and ready to go.
+
+In particular:
+
+- nestedvirtualization useful for example for installing openshift cnv
+- nfs with autoprovisioner [Link](https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner/blob/master/README.md)
+- VM Sizing as Memory, CPU and Disk
+- Cloudflare Support and Letsencrypt for certificate
 
 Requirements
 ------------
