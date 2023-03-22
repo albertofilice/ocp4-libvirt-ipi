@@ -1,0 +1,12 @@
+- name: Remove Libvirt IPI Openshift 4
+  hosts: localhost
+  vars:
+    workdir: "{{ ansible_env.HOME }}"
+    ocp_install_file_path: "install-config.yml"
+    ocp_install_path: "{{ workdir }}/ocp"
+    ocp_release: "4.11.20"
+  tasks:
+    - name:  OpenShift cluster destroy
+      shell: |
+        {{ ocp_install_path }}/artifacts/openshift-installer-{{ ocp_release }}/openshift-install destroy cluster --dir {{ ocp_install_path }}/install/
+        rm -rf {{ ocp_install_path }}/install/
