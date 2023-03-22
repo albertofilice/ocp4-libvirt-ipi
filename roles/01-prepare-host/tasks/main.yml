@@ -93,7 +93,7 @@
           listen-address=127.0.0.1
           bind-interfaces
           server=8.8.8.8
-          address=/{{ basedomain }}/192.168.126.1
+          address=/{{ baseDomain }}/192.168.126.1
 
 - name: Reload network
   become: true

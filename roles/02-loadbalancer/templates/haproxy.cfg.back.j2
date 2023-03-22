@@ -1,10 +1,10 @@
-######## {{ cluster_name }} BEGIN ########
+######## {{ metadata.name }} BEGIN ########
 
-backend {{ cluster_name }}-openshift-api-server
+backend {{ metadata.name }}-openshift-api-server
     balance source
     mode tcp
 {% for m in range(0, controlPlane.replicas) %}
-    server {{ cluster_name }}-master-{{ loop.index0 }}  {{ ocp_api_vip | regex_replace('(^.*\.).*$', '\\1') }}{{ocp_api_vip.split('.')[3] | int + loop.index0 }}:6443 check
+    server {{ metadata.name }}-master-{{ loop.index0 }}  {{ ocp_api_vip | regex_replace('(^.*\.).*$', '\\1') }}{{ocp_api_vip.split('.')[3] | int + loop.index0 }}:6443 check
 {% endfor %}
 
 {% if compute.0.replicas == 0 %}
@@ -15,19 +15,19 @@ backend {{ cluster_name }}-openshift-api-server
 {% endif %}
 
 
-backend {{ cluster_name }}-ingress-http
+backend {{ metadata.name }}-ingress-http
     balance source
     mode tcp
 {% for w in range(0, nodes) %}
-    server {{ cluster_name }}-worker-http-router-{{ loop.index0 }} {{ ocp_apps_vip | regex_replace('(^.*\.).*$', '\\1') }}{{ocp_apps_vip.split('.')[3] | int + loop.index0 }}:80 check
+    server {{ metadata.name }}-worker-http-router-{{ loop.index0 }} {{ ocp_apps_vip | regex_replace('(^.*\.).*$', '\\1') }}{{ocp_apps_vip.split('.')[3] | int + loop.index0 }}:80 check
 {% endfor %}
 
 
-backend {{ cluster_name }}-ingress-https
+backend {{ metadata.name }}-ingress-https
     balance source
     mode tcp
 {% for w in range(0, nodes) %}
-    server {{ cluster_name }}-worker-https-router-{{ loop.index0 }} {{ ocp_apps_vip | regex_replace('(^.*\.).*$', '\\1') }}{{ocp_apps_vip.split('.')[3] | int + loop.index0 }}:443 check sni req.ssl_sni
+    server {{ metadata.name }}-worker-https-router-{{ loop.index0 }} {{ ocp_apps_vip | regex_replace('(^.*\.).*$', '\\1') }}{{ocp_apps_vip.split('.')[3] | int + loop.index0 }}:443 check sni req.ssl_sni
 {% endfor %}
 
-######## {{ cluster_name }} END ########
+######## {{ metadata.name }} END ########

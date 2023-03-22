@@ -9,8 +9,8 @@
 
 - name: Create Cloudflare DNS records
   cloudflare_dns:
-    zone: "{{ basedomain }}"
-    record: "{{ item }}.{{ metadata.name }}.{{ basedomain }}"
+    zone: "{{ baseDomain }}"
+    record: "{{ item }}.{{ metadata.name }}.{{ baseDomain }}"
     ttl: 1
     type: A
     value: "{{ public_ip }}"
@@ -25,8 +25,8 @@
 
 - name: Create IPv6 Cloudflare DNS records
   cloudflare_dns:
-    zone: "{{ basedomain }}"
-    record: "{{ item }}.{{ metadata.name }}.{{ basedomain }}"
+    zone: "{{ baseDomain }}"
+    record: "{{ item }}.{{ metadata.name }}.{{ baseDomain }}"
     ttl: 1
     type: AAAA
     value: "{{ public_ipv6 }}"

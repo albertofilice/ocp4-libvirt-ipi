@@ -3,11 +3,11 @@
 
 - name: Check certificates exist
   ansible.builtin.stat:
-    path: "{{ ocp_install_path }}/install/certificate/{{ metadata.name }}.{{ basedomain }}/fullchain.crt"
+    path: "{{ ocp_install_path }}/install/certificate/{{ metadata.name }}.{{ baseDomain }}/fullchain.crt"
   register: crt
 - name: Check ssl key exist
   ansible.builtin.stat:
-    path: "{{ ocp_install_path }}/install/certificate/{{ metadata.name }}.{{ basedomain }}/cert.key"
+    path: "{{ ocp_install_path }}/install/certificate/{{ metadata.name }}.{{ baseDomain }}/cert.key"
   register: key
 
 - name: Install certificates
@@ -15,12 +15,12 @@
 
     - name: Slurp certficate_fullchain
       ansible.builtin.slurp:
-        src: "{{ ocp_install_path }}/install/certificate/{{ metadata.name }}.{{ basedomain }}/fullchain.crt"
+        src: "{{ ocp_install_path }}/install/certificate/{{ metadata.name }}.{{ baseDomain }}/fullchain.crt"
       register: tls_crt
 
     - name: Slurp certficate_key
       ansible.builtin.slurp:
-        src: "{{ ocp_install_path }}/install/certificate/{{ metadata.name }}.{{ basedomain }}/cert.key"
+        src: "{{ ocp_install_path }}/install/certificate/{{ metadata.name }}.{{ baseDomain }}/cert.key"
       register: tls_key
 
     - name: Create secret with certificates for openshift-ingress

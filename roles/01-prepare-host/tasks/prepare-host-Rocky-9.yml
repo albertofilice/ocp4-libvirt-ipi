@@ -3,7 +3,7 @@
   ansible.builtin.yum_repository:
     name: devel
     description: Devel YUM repo
-    mirrorlist: https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=devel-$releasever$rltype      
+    mirrorlist: https://mirrors.rockylinux.org/mirrorlist?arch=$basearch&repo=devel-$releasever$rltype
     enabled: yes
 
 - name: Installing KVM Packages
