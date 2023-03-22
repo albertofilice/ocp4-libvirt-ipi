@@ -72,9 +72,9 @@ In particular:
 Requirements
 ------------
 
-Ansible
-Git
-pull-secrets from https://cloud.redhat.com/openshift/install/metal/user-provisioned
+- Ansible
+- Git
+- pull-secrets from https://cloud.redhat.com/openshift/install/metal/user-provisioned
 
 
 Role Variables
