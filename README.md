@@ -73,7 +73,6 @@ Requirements
 ------------
 
 - Ansible
-- k8s collection (ansible-galaxy collection install kubernetes.core)
 - Git
 - pull-secrets from https://cloud.redhat.com/openshift/install/metal/user-provisioned
 
@@ -121,6 +120,7 @@ Run
 ```bash
 git clone https://github.com/albertofilice/ocp4-libvirt-ipi.git
 cd ocp4-libvirt-ipi
+ansible-galaxy install -r requirements.yml
 #Change install-config.yml and main.yml variable.
 ansible-playbook main.yml
 ```
