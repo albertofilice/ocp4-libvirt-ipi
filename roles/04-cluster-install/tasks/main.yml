@@ -50,6 +50,41 @@
       debug:
         msg: "The next task - OpenShift Install - It might take some time to produce any output, please be patient. Thank you."
 
+
+    - name: OpenShift install
+      when: controlPlane.replicas == 1
+      async: 10
+      poll: 0
+      shell: |
+        while true; do
+          sleep 2m
+          oc patch etcd cluster -p='{"spec": {"unsupportedConfigOverrides": {"useUnsupportedUnsafeNonHANonProductionUnstableEtcd": true}}}' --type=merge
+          cat > etcd_quorum_guard.yaml << EOF
+          - op: add
+            path: /spec/overrides
+            value:
+            - kind: Deployment
+              group: apps/v1
+              name: etcd-quorum-guard
+              namespace: openshift-etcd
+              unmanaged: true
+          EOF
+          oc patch clusterversion version --type json -p "$(cat etcd_quorum_guard.yaml)"
+          oc scale --replicas=1 deployment/etcd-quorum-guard -n openshift-etcd
+          oc scale --replicas=1 ingresscontroller/default -n openshift-ingress-operator
+          oc scale --replicas=1 deployment.apps/console -n openshift-console
+          oc scale --replicas=1 deployment.apps/downloads -n openshift-console
+          oc scale --replicas=1 deployment.apps/oauth-openshift -n openshift-authentication
+          oc scale --replicas=1 deployment.apps/packageserver -n openshift-operator-lifecycle-manager
+          oc scale --replicas=1 deployment.apps/prometheus-adapter -n openshift-monitoring
+          oc scale --replicas=1 deployment.apps/thanos-querier -n openshift-monitoring
+          oc scale --replicas=1 statefulset.apps/prometheus-k8s -n openshift-monitoring
+          oc scale --replicas=1 statefulset.apps/alertmanager-main -n openshift-monitoring 
+          if [ $? == 0 ]; then
+             break
+          fi
+        done > /dev/null 2>&1
+      
     - name: OpenShift install
       shell: |
         export OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE={{ ocp_install_install_release_image_registry }}:{{ ocp_release }}-x86_64
