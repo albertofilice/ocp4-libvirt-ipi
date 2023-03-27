@@ -19,11 +19,7 @@
               - python3-netaddr
             state: present
 
-        - name: Get Firewalld ZONE
-          shell: "IFADDR=$(nmcli con show '{{ network_interface }}' | grep ipv4.addresses | awk -F ':                         ' '{print $2}' | awk -F / '{print $1}') ; echo $IFADDR"
-          register: publicaddress
-
-        - name: Remove the haproxy.conf if it's the default one
+        - name: Remove defaul haproxy.conf
           shell: "if grep 'Example configuration for a possible web application' /etc/haproxy/haproxy.cfg  ; then     rm -f /etc/haproxy/haproxy.cfg ; fi"
 
         - stat:
@@ -97,7 +93,9 @@
               backend default-ingress-securehttps
                   balance source
                   mode tcp
+                                    
         - name: Create ACL in HAproxy frontend API
+          when: acl_haproxy == true
           ansible.builtin.lineinfile:
             path: /etc/haproxy/haproxy.cfg
             insertafter: '    default_backend default-openshift-api-server'
@@ -105,6 +103,7 @@
 
 
         - name: Create ACL in HAproxy frontend HTTPS
+          when: acl_haproxy == true        
           ansible.builtin.lineinfile:
             path: /etc/haproxy/haproxy.cfg
             insertafter: '    default_backend default-ingress-securehttps'
@@ -112,6 +111,7 @@
 
 
         - name: Create ACL in HAproxy frontend HTTP
+          when: acl_haproxy == true        
           ansible.builtin.lineinfile:
             path: /etc/haproxy/haproxy.cfg
             insertafter: '    default_backend default-ingress-http'
