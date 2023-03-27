@@ -23,12 +23,14 @@
     dest: "{{ workdir }}/qemu-spice-el9"
     clone: yes
     force: yes
+  when: support_spice == "true"  
 
 - name: Install Spice Supports
   shell: |
     cd {{ workdir }}/qemu-spice-el9
     chmod +x INSTALL.sh
     ./INSTALL.sh
+  when: support_spice == "true"  
 
 - name: Upgrade all packages
   ansible.builtin.package:
