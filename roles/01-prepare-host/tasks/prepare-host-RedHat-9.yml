@@ -55,6 +55,7 @@
     yum groupinstall "Virtualization Host" -y
     yum install virt-install libguestfs-tools swtpm swtpm-tools @container-tools -y
     dnf module disable virt -y
+    systemctl enable libvirtd-tcp.socket
 
 - name: Configure libvirt listen_tls
   lineinfile:
