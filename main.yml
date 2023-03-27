@@ -3,10 +3,10 @@
   hosts: localhost
 
   vars:
-    acl_haproxy: true
+    acl_haproxy: "true"
     libvirt_api_endpoint: "192.168.122.1"
     workdir: "{{ ansible_env.HOME }}"
-    nestedvirtualization: true
+    nestedvirtualization: "true"
     pool_location: "/var/lib/libvirt/openshift-images"
     nfs_export_path: "/var/lib/libvirt/openshift-nfs"
     nfs_storage: "true"
@@ -25,7 +25,7 @@
     ocp_api_vip: "192.168.126.11"
     ocp_apps_vip: "192.168.126.51"
     ocp_cluster_net_gw: "192.168.126.1"
-    masters_schedulable: false
+    masters_schedulable: "true"
     clusteradmin: <CHANGEME clusteradmin>
     clusterpassword: <CHANGEME clusterpassword> 
     #letsencrypt_account_email: <CHANGEME letsencrypt_account_email>
