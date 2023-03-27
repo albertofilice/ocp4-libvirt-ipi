@@ -95,7 +95,7 @@
                   mode tcp
                                     
         - name: Create ACL in HAproxy frontend API
-          when: acl_haproxy == true
+          when: acl_haproxy == "true"
           ansible.builtin.lineinfile:
             path: /etc/haproxy/haproxy.cfg
             insertafter: '    default_backend default-openshift-api-server'
@@ -103,7 +103,7 @@
 
 
         - name: Create ACL in HAproxy frontend HTTPS
-          when: acl_haproxy == true        
+          when: acl_haproxy == "true"        
           ansible.builtin.lineinfile:
             path: /etc/haproxy/haproxy.cfg
             insertafter: '    default_backend default-ingress-securehttps'
@@ -111,7 +111,7 @@
 
 
         - name: Create ACL in HAproxy frontend HTTP
-          when: acl_haproxy == true        
+          when: acl_haproxy == "true"        
           ansible.builtin.lineinfile:
             path: /etc/haproxy/haproxy.cfg
             insertafter: '    default_backend default-ingress-http'
