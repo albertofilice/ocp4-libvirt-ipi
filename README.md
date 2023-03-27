@@ -73,6 +73,7 @@ Requirements
 ------------
 
 - Ansible
+- k8s collection (ansible-galaxy collection install kubernetes.core)
 - Git
 - pull-secrets from https://cloud.redhat.com/openshift/install/metal/user-provisioned
 
