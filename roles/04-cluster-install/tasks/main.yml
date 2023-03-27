@@ -13,7 +13,7 @@
     record: "{{ item }}.{{ metadata.name }}.{{ baseDomain }}"
     ttl: 1
     type: A
-    value: "{{ public_ip }}"
+    value: "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}"
     account_email: "{{ cloudflare_account_email }}"
     account_api_token: "{{ cloudflare_account_api_token }}"
   with_items:
@@ -29,7 +29,7 @@
     record: "{{ item }}.{{ metadata.name }}.{{ baseDomain }}"
     ttl: 1
     type: AAAA
-    value: "{{ public_ipv6 }}"
+    value: "{{ hostvars[inventory_hostname]['ansible_default_ipv6']['address'] }}"
     account_email: "{{ cloudflare_account_email }}"
     account_api_token: "{{ cloudflare_account_api_token }}"
   with_items:
