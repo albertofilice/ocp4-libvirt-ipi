@@ -31,10 +31,7 @@
     #letsencrypt_account_email: <CHANGEME letsencrypt_account_email>
     #cloudflare_account_email: <CHANGEME cloudflare_account_email>
     #cloudflare_account_api_token: <CHANGEME cloudflare_account_api_token>
-    public_ip: <CHANGEME>
-    public_ipv6: <CHANGEME>
-    libvirt_api_endpoint: 192.168.122.1    
-
+    
   roles:
     - {role: '01-prepare-host', tags: 'prereq'}
     - {role: '02-loadbalancer', tags: 'haproxy'}
