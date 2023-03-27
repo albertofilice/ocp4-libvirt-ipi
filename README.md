@@ -86,7 +86,7 @@ All Variable for playbook can be found in main.yml and install-config.yml
 
 |variable name | description	| Default |
 |--------------|----|----|
-| network_interface |   Network Inteface Name, you can see with command: $ nmcli con show     |  eth0 |
+| acl_haproxy | configure by default rules for ha proxies that make the cluster accessible only for routes including Domain |  true |
 | libvirt_api_endpoint |  ip of libvirt on the virt interface, usually ip of the virbr0 bridge interface    |  192.168.122.1 |
 | workdir |   Default user HOME     |  ansible_env.HOME |
 | nestedvirtualization |   Nested virtualization lets you run virtual machine (VM) instances inside of other VMs     |  true |
