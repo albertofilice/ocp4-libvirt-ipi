@@ -49,6 +49,7 @@
     gpgcheck=0
     enabled=1
     EOF
+    systemctl enable libvirtd-tcp.socket
 
 - name: Configure libvirt listen_tls
   lineinfile:
