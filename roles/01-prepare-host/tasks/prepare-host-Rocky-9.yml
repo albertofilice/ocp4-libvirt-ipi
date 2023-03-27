@@ -50,6 +50,7 @@
     update-ca-trust dnf reinstall ca-certificates
     dnf groupinstall "Virtualization Host" -y
     dnf install virt-install libguestfs-tools swtpm swtpm-tools container-tools -y
+    systemctl enable libvirtd-tcp.socket
 
 
 - name: Enable IP Forwarding
