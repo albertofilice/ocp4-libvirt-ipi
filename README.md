@@ -5,6 +5,8 @@ This environment has been created for the sole purpose of providing an easy to d
 
 Use it at your own pleasure and risk!
 
+### **Configured only for Centos 8 | Redhat 9 | Rocky Linux 9**
+
 Ocp4 Libvirt IPI
 =========
 
