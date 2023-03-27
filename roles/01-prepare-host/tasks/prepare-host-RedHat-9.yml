@@ -1,0 +1,124 @@
+---
+- name: Handle Red Hat Entitlement
+  ansible.builtin.include_tasks: prepare-host-RedHat-entitlement.yml
+  vars:
+    rhsm_repository:
+      - rhel-9-for-x86_64-baseos-rpms
+      - rhel-9-for-x86_64-appstream-rpms
+      - rhel-9-for-x86_64-highavailability-rpms
+      - ansible-automation-platform-2.3-for-rhel-9-x86_64-rpms
+
+- name: Enable a RHSM repository
+  community.general.rhsm_repository:
+    name: advanced-virt-for-rhel-8-x86_64-rpms
+
+- name: Installing KVM Packages
+  ansible.builtin.package:
+    name:
+      - "@virtualization-hypervisor"
+      - "@virtualization-client"
+      - "@virtualization-platform"
+      - "@virtualization-tools"
+      - python3-lxml
+      - firewalld
+      - gcc-c++ 
+      - libvirt-devel 
+      - tar
+      - git
+      - golang
+      - python3-netaddr
+      - unzip
+    state: present
+
+- name: Clone qemu-spice-el9 for fix spice error
+  git:
+    repo: "https://github.com/ladar/qemu-spice-el9.git"
+    dest: "{{ workdir }}/qemu-spice-el9"
+    clone: yes
+    force: yes
+
+- name: Install Spice Supports
+  shell: |
+    cd {{ workdir }}/qemu-spice-el9
+    chmod +x INSTALL.sh
+    ./INSTALL.sh
+
+- name: Upgrade all packages
+  ansible.builtin.package:
+    name: '*'
+    state: latest
+  register: update
+
+- name: Installing Virtualization Packages And Enable advanced virtualization
+  shell: |
+    update-ca-trust yum reinstall ca-certificates
+    yum groupinstall "Virtualization Host" -y
+    yum install virt-install libguestfs-tools swtpm swtpm-tools @container-tools -y
+    dnf module disable virt -y
+
+- name: Configure libvirt listen_tls
+  lineinfile:
+    path: /etc/libvirt/libvirtd.conf
+    regexp: 'listen_tls'
+    line: listen_tls = 0
+
+- name: Configure libvirt auth_tcp
+  lineinfile:
+    path: /etc/libvirt/libvirtd.conf
+    regexp: 'auth_tcp'
+    line: auth_tcp="none"
+
+- name: Configure libvirt tcp_port
+  lineinfile:
+    path: /etc/libvirt/libvirtd.conf
+    regexp: 'tcp_port'
+    line: tcp_port = "16509"
+
+- name: Enable & Start firewalld
+  ansible.builtin.service:
+    name: firewalld
+    state: started
+    enabled: true
+
+- name: Allow NFS traffic from VM's to Host
+  ansible.posix.firewalld:
+    zone: libvirt
+    state: enabled
+    permanent: yes
+    service: "{{ item }}"
+  with_items:
+    - nfs
+    - mountd
+    - rpc-bind
+  notify: 'reload firewalld'
+
+- name: Allow OpenShift traffic from VM's to Host
+  ansible.posix.firewalld:
+    zone: libvirt
+    state: enabled
+    permanent: yes
+    port: "{{ item }}"
+  with_items:
+    - 80/tcp
+    - 443/tcp
+    - 6443/tcp
+    - 22623/tcp
+    - 2379/tcp
+    - 16509/tcp
+    - 32768-65535/tcp
+
+- name: Allow OpenShift traffic from public to Host
+  ansible.posix.firewalld:
+    zone: public
+    state: enabled
+    permanent: yes
+    port: "{{ item }}"
+  with_items:
+    - 80/tcp
+    - 443/tcp
+    - 6443/tcp
+
+- name: reload service firewalld
+  systemd:
+    name: firewalld
+    state: reloaded
