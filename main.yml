@@ -3,7 +3,7 @@
   hosts: localhost
 
   vars:
-    network_interface: "eth0"
+    acl_haproxy: true
     libvirt_api_endpoint: "192.168.122.1"
     workdir: "{{ ansible_env.HOME }}"
     nestedvirtualization: true
