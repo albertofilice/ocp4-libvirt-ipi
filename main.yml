@@ -32,7 +32,8 @@
     #cloudflare_account_email: <CHANGEME cloudflare_account_email>
     #cloudflare_account_api_token: <CHANGEME cloudflare_account_api_token>
     support_spice: "true"
-    
+    ansible_distribution_major_version: 9
+
   roles:
     - {role: '01-prepare-host', tags: 'prereq'}
     - {role: '02-loadbalancer', tags: 'haproxy'}

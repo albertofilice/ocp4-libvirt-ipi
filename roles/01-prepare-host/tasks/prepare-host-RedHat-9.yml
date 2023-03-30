@@ -1,17 +1,4 @@
 ---
-- name: Handle Red Hat Entitlement
-  ansible.builtin.include_tasks: prepare-host-RedHat-entitlement.yml
-  vars:
-    rhsm_repository:
-      - rhel-9-for-x86_64-baseos-rpms
-      - rhel-9-for-x86_64-appstream-rpms
-      - rhel-9-for-x86_64-highavailability-rpms
-      - ansible-automation-platform-2.3-for-rhel-9-x86_64-rpms
-
-- name: Enable a RHSM repository
-  community.general.rhsm_repository:
-    name: advanced-virt-for-rhel-8-x86_64-rpms
-
 - name: Installing KVM Packages
   ansible.builtin.package:
     name:
@@ -93,7 +80,6 @@
     - nfs
     - mountd
     - rpc-bind
-  notify: 'reload firewalld'
 
 - name: Allow OpenShift traffic from VM's to Host
   ansible.posix.firewalld:

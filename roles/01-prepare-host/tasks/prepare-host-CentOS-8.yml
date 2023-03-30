@@ -87,7 +87,6 @@
     - nfs
     - mountd
     - rpc-bind
-  notify: 'reload firewalld'
 
 - name: Allow OpenShift traffic from VM's to Host
   ansible.posix.firewalld:
