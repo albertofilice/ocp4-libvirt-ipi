@@ -1,0 +1,16 @@
+- name: Libvirt IPI Openshift 4
+  hosts: localhost
+
+  vars:
+    ocp_install_file_path: "install-config.yml"
+    ocp_install_path: "{{ workdir }}/ocp"
+    letsencrypt_account_email: <CHANGEME letsencrypt_account_email>
+    cloudflare_account_email: <CHANGEME cloudflare_account_email>
+    cloudflare_account_api_token: <CHANGEME cloudflare_account_api_token>
+
+  tasks:
+    - name: Run Letsencrypt
+      ansible.builtin.include_tasks: "roles/day2/tasks/letsencrypt.yml"
+
+    - name: Run Certificate Install
+      ansible.builtin.include_tasks: "roles/day2/tasks/certificate-install.yml"
