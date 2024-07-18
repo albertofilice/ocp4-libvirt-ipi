@@ -1,4 +1,14 @@
 ---
+- name: Enable automation platform repository
+  yum_repository:
+    name: ansible-automation-platform-2.3-for-rhel-9-x86_64-rpms
+    enabled: yes
+
+- name: Enable codeready repository
+  yum_repository:
+    name: codeready-builder-for-rhel-9-x86_64-rpms
+    enabled: yes    
+        
 - name: Installing KVM Packages
   ansible.builtin.package:
     name:
