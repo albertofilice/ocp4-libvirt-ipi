@@ -22,6 +22,10 @@
     state: started
     enabled: yes
   ignore_errors: true
+  retries: 5
+  delay: 10
+  register: libvirtd_result
+  until: libvirtd_result is succeeded  
 
 
 - name: iptables
